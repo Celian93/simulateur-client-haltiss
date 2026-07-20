@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haltiss — Générateur de clients</title>
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f4f7f5;
+  color: #1a1a1a;
+  min-height: 100vh;
+}
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d3d24 0%, #1a6b42 60%, #2d9b5f 100%);
+}
+
+.login-box {
+  background: white;
+  border-radius: 20px;
+  padding: 48px 40px;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.login-box img { width: 180px; margin-bottom: 28px; }
+
+.login-box h2 {
+  font-size: 1.1rem;
+  color: #2d2d2d;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.login-box p {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 28px;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #1a6b42, #2d9b5f);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-login:hover { opacity: 0.9; }
+
+/* ── APP ── */
+#app { display: none; }
+
+header {
+  background: white;
+  border-bottom: 1px solid #e0ede6;
+  padding: 0 24px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+
+header img { height: 36px; }
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-size: 0.82rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.btn-logout {
+  font-size: 0.78rem;
+  color: #888;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-logout:hover { border-color: #c00; color: #c00; }
+
+/* ── MAIN ── */
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a3d2a;
+  margin-bottom: 4px;
+}
+.page-sub {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+/* ── FORM ── */
+.form {
+  background: white;
+  border-radius: 14px;
+  padding: 22px;
+  border: 1px solid #dceee4;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 12px rgba(26,107,66,0.06);
+}
+
+.row { display: flex; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+label { font-size: 0.78rem; font-weight: 700; color: #3a6b4a; letter-spacing: 0.02em; text-transform: uppercase; }
+
+input {
+  padding: 10px 13px;
+  border: 1.5px solid #d4e8db;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s;
+  background: #fafffe;
+}
+input:focus { border-color: #1a6b42; background: white; }
+
+.type-row { display: flex; gap: 8px; }
+.type-btn {
+  flex: 1;
+  padding: 9px 6px;
+  border: 1.5px solid #d4e8db;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #555;
+}
+.type-btn.active {
+  background: linear-gradient(135deg, #1a6b42, #2d9b5f);
+  color: white;
+  border-color: transparent;
+}
+
+.btn-generate {
+  padding: 13px;
+  background: linear-gradient(135deg, #1a6b42, #2d9b5f);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+.btn-generate:hover { opacity: 0.92; }
+.btn-generate:active { transform: scale(0.98); }
+
+/* ── RESULT ── */
+.result {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #dceee4;
+  padding: 22px;
+  margin-top: 16px;
+  display: none;
+  box-shadow: 0 2px 12px rgba(26,107,66,0.06);
+}
+.result.show { display: block; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge.b2b { background: #dbeafe; color: #1d4ed8; }
+.badge.b2c { background: #dcfce7; color: #15803d; }
+
+.result-title { font-size: 1.05rem; font-weight: 700; color: #1a3d2a; margin-bottom: 3px; }
+.result-sub { font-size: 0.8rem; color: #888; margin-bottom: 18px; }
+
+.section { margin-bottom: 18px; }
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #2d9b5f;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e8f4ed;
+}
+
+.summary-text {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #222;
+  background: #f4fbf7;
+  border-radius: 8px;
+  padding: 13px;
+  border-left: 3px solid #2d9b5f;
+}
+.summary-text b { color: #1a3d2a; }
+
+.items-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.item-row {
+  font-size: 0.83rem;
+  color: #333;
+  padding: 6px 9px;
+  background: #f4fbf7;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.item-qty { font-weight: 700; color: #1a6b42; }
+.fragile { font-size: 0.68rem; color: #b45309; font-weight: 700; background: #fef3c7; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 0.79rem; background: #fff8e6; color: #92400e; padding: 4px 9px; border-radius: 6px; border: 1px solid #fde68a; }
+
+.budget-bar { display: flex; gap: 8px; }
+.budget-item { flex: 1; text-align: center; padding: 11px 8px; border-radius: 10px; background: #f4fbf7; border: 1px solid #dceee4; }
+.budget-item.main { background: linear-gradient(135deg, #1a6b42, #2d9b5f); border-color: transparent; }
+.budget-label { font-size: 0.68rem; color: #888; font-weight: 700; text-transform: uppercase; }
+.budget-item.main .budget-label { color: rgba(255,255,255,0.75); }
+.budget-value { font-size: 1rem; font-weight: 700; color: #1a3d2a; margin-top: 2px; }
+.budget-item.main .budget-value { color: white; font-size: 1.15rem; }
+.budget-suffix { font-size: 0.68rem; font-weight: 400; }
+
+.questions-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.questions-list li {
+  font-size: 0.85rem;
+  color: #333;
+  padding: 7px 11px;
+  background: #f4fbf7;
+  border-radius: 7px;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+.q-num { color: #1a6b42; font-weight: 700; flex-shrink: 0; }
+
+.flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 6px; font-weight: 600; }
+.flag.urgent { background: #fee2e2; color: #b91c1c; }
+.flag.weekend { background: #fef3c7; color: #92400e; }
+.flag.noelev { background: #f3e8ff; color: #7c3aed; }
+
+.actions { display: flex; gap: 8px; margin-top: 18px; }
+.btn-copy {
+  flex: 1;
+  padding: 10px;
+  border: 1.5px solid #d4e8db;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #1a6b42;
+  transition: all 0.15s;
+}
+.btn-copy:hover { background: #f4fbf7; border-color: #1a6b42; }
+.btn-new {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1a6b42, #2d9b5f);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: white;
+  transition: opacity 0.15s;
+}
+.btn-new:hover { opacity: 0.9; }
+
+@media (max-width: 500px) {
+  .items-grid { grid-template-columns: 1fr; }
+  .budget-bar { flex-direction: column; }
+  .type-row { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <img src="logo.png" alt="Haltiss" />
+    <h2>Espace agents de liaison</h2>
+    <p>Connectez-vous pour accéder au générateur</p>
+    <button class="btn-login" onclick="netlifyIdentity.open('login')">Se connecter</button>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <header>
+    <img src="logo.png" alt="Haltiss" />
+    <div class="user-bar">
+      <span class="user-name" id="user-name"></span>
+      <button class="btn-logout" onclick="netlifyIdentity.logout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-title">Générateur de clients</div>
+    <p class="page-sub">Renseigne la zone du prestataire et génère un profil client réaliste.</p>
+
+    <div class="form">
+      <div class="row">
+        <div class="field">
+          <label>Ville du prestataire</label>
+          <input type="text" id="ville" placeholder="Ex : Marseille" />
+        </div>
+        <div class="field">
+          <label>Département</label>
+          <input type="text" id="dept" placeholder="Ex : 13" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Type de client</label>
+        <div class="type-row">
+          <button class="type-btn active" data-type="auto" onclick="selectType('auto')">Aléatoire</button>
+          <button class="type-btn" data-type="B2B" onclick="selectType('B2B')">Professionnel</button>
+          <button class="type-btn" data-type="B2C" onclick="selectType('B2C')">Particulier</button>
+        </div>
+      </div>
+
+      <button class="btn-generate" onclick="generer()">Générer un client</button>
+    </div>
+
+    <div class="result" id="result"></div>
+  </main>
+</div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+netlifyIdentity.on('init', user => {
+  if (user) showApp(user);
+});
+
+netlifyIdentity.on('login', user => {
+  netlifyIdentity.close();
+  showApp(user);
+});
+
+netlifyIdentity.on('logout', () => {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+});
+
+function showApp(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const name = user.user_metadata?.full_name || user.email;
+  document.getElementById('user-name').textContent = name;
+}
+
+// ── DONNÉES ───────────────────────────────────────────────────────────────────
+let selectedType = 'auto';
+const genHistory = [];
+
+function selectType(t) {
+  selectedType = t;
+  document.querySelectorAll('.type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === t);
+  });
+}
+
+const B2B = [
+  { cat:'Cabinet comptable', size:[3,12], volBase:[15,35], items:[
+    {n:'Bureau',qpp:1,f:false},{n:'Fauteuil de bureau',qpp:1,f:false},
+    {n:'Ordinateur',qpp:1,f:true},{n:'Écran',qpp:1.3,f:true},
+    {n:'Armoire à archives',q:[2,5],f:false},{n:'Cartons d\'archives',q:[20,60],f:false},
+    {n:'Table de réunion',q:[1,2],f:false},{n:'Imprimante',q:[1,2],f:true},
+  ]},
+  { cat:'Cabinet médical', size:[2,6], volBase:[12,28], items:[
+    {n:'Bureau médecin',qpp:1,f:false},{n:'Fauteuil',qpp:1,f:false},
+    {n:'Table d\'examen',q:[1,3],f:false},{n:'Armoire médicale',q:[2,4],f:false},
+    {n:'Chaises salle d\'attente',q:[6,14],f:false},{n:'Cartons dossiers',q:[10,30],f:false},
+    {n:'Ordinateur',q:[1,3],f:true},{n:'Mobilier d\'accueil',q:[1,2],f:false},
+  ]},
+  { cat:'Agence immobilière', size:[4,10], volBase:[15,30], items:[
+    {n:'Bureau',qpp:1,f:false},{n:'Fauteuil',qpp:1,f:false},
+    {n:'Ordinateur',qpp:1,f:true},{n:'Écran',qpp:1.2,f:true},
+    {n:'Armoire',q:[2,5],f:false},{n:'Table de réunion',q:[1,2],f:false},
+    {n:'Présentoir / vitrine',q:[1,3],f:true},{n:'Cartons administratifs',q:[10,25],f:false},
+  ]},
+  { cat:'Agence de communication', size:[6,18], volBase:[20,50], items:[
+    {n:'Bureau',qpp:1,f:false},{n:'Fauteuil ergonomique',qpp:1,f:false},
+    {n:'Ordinateur portable',qpp:1,f:true},{n:'Écran',qpp:1.5,f:true},
+    {n:'Table de réunion',q:[1,3],f:false},{n:'Écran TV / projecteur',q:[1,3],f:true},
+    {n:'Tablette graphique',q:[2,6],f:true},{n:'Cartons matériel',q:[15,40],f:false},
+  ]},
+  { cat:'Entreprise informatique', size:[5,25], volBase:[20,55], items:[
+    {n:'Bureau',qpp:1,f:false},{n:'Fauteuil ergonomique',qpp:1,f:false},
+    {n:'Ordinateur / laptop',qpp:1,f:true},{n:'Écran',qpp:2,f:true},
+    {n:'Baie serveur',q:[1,4],f:true},{n:'Switch réseau',q:[2,6],f:true},
+    {n:'Onduleur',q:[2,5],f:true},{n:'Cartons câblage',q:[10,30],f:false},
+  ]},
+  { cat:'Commerce de détail', size:null, volBase:[20,60], items:[
+    {n:'Rayonnage métal',q:[4,20],f:false},{n:'Présentoir',q:[2,8],f:false},
+    {n:'Caisse enregistreuse',q:[1,3],f:true},{n:'Stock (cartons)',q:[25,100],f:false},
+    {n:'Bureau caissier',q:[1,2],f:false},{n:'Vitrine',q:[1,4],f:true},
+    {n:'Enseigne démontée',q:[1,1],f:true},
+  ]},
+  { cat:'Restaurant', size:null, volBase:[25,70], items:[
+    {n:'Table de restaurant',q:[8,30],f:false},{n:'Chaise de restaurant',q:[16,80],f:false},
+    {n:'Vaisselle emballée (carton)',q:[10,35],f:true},{n:'Mobilier de bar',q:[1,3],f:false},
+    {n:'Équipement cuisine démontable',q:[3,8],f:true},{n:'Caisse enregistreuse',q:[1,2],f:true},
+  ]},
+  { cat:'Étude notariale', size:[4,10], volBase:[20,50], items:[
+    {n:'Bureau',qpp:1,f:false},{n:'Fauteuil cuir',qpp:1,f:false},
+    {n:'Armoire à archives sécurisée',q:[3,8],f:false},{n:'Coffre-fort',q:[1,2],f:false},
+    {n:'Cartons archives',q:[40,120],f:false},{n:'Bibliothèque',q:[2,5],f:false},
+    {n:'Ordinateur',q:[2,6],f:true},
+  ]},
+  { cat:'Organisme de formation', size:[3,12], volBase:[15,40], items:[
+    {n:'Table de formation',qpp:1.5,f:false},{n:'Chaise',qpp:1.5,f:false},
+    {n:'Tableau blanc',q:[2,6],f:false},{n:'Vidéoprojecteur',q:[1,4],f:true},
+    {n:'Bureau formateur',q:[2,4],f:false},{n:'Cartons matériel pédagogique',q:[10,30],f:false},
+  ]},
+  { cat:'Pharmacie', size:null, volBase:[20,50], items:[
+    {n:'Rayonnage pharmacie',q:[6,18],f:false},{n:'Comptoir d\'accueil',q:[1,2],f:false},
+    {n:'Réfrigérateur médicaments',q:[1,3],f:true},{n:'Stock médicaments (cartons)',q:[30,80],f:true},
+    {n:'Présentoir parapharmacie',q:[4,12],f:false},{n:'Ordinateur + TPE',q:[2,4],f:true},
+  ]},
+];
+
+const B2C = [
+  { cat:'Studio étudiant', vol:[8,18], extra:['Pas d\'ascenseur','Accès étroit'], items:[
+    {n:'Lit 1 personne',q:[1,1],f:false},{n:'Bureau',q:[1,1],f:false},
+    {n:'Armoire',q:[1,1],f:false},{n:'Cartons affaires',q:[5,15],f:false},
+    {n:'Électroménager (micro-ondes…)',q:[1,1],f:true},
+  ]},
+  { cat:'Couple — appartement 2 pièces', vol:[20,38], items:[
+    {n:'Lit double',q:[1,1],f:false},{n:'Armoire',q:[1,2],f:false},
+    {n:'Canapé',q:[1,1],f:false},{n:'Table salle à manger',q:[1,1],f:false},
+    {n:'Chaise',q:[2,6],f:false},{n:'Réfrigérateur',q:[1,1],f:false},
+    {n:'Lave-linge',q:[1,1],f:false},{n:'TV',q:[1,1],f:true},
+    {n:'Cartons divers',q:[12,30],f:false},
+  ]},
+  { cat:'Famille — maison', vol:[40,80], items:[
+    {n:'Lit double',q:[1,1],f:false},{n:'Lit enfant',q:[1,2],f:false},
+    {n:'Armoire',q:[2,4],f:false},{n:'Canapé',q:[1,2],f:false},
+    {n:'Table salle à manger',q:[1,1],f:false},{n:'Chaise',q:[4,8],f:false},
+    {n:'Réfrigérateur',q:[1,1],f:false},{n:'Lave-linge',q:[1,1],f:false},
+    {n:'TV',q:[1,2],f:true},{n:'Cartons vaisselle',q:[5,12],f:true},
+    {n:'Cartons livres / divers',q:[20,45],f:false},
+  ]},
+  { cat:'Mutation professionnelle', vol:[25,50], items:[
+    {n:'Lit double',q:[1,1],f:false},{n:'Armoire',q:[1,3],f:false},
+    {n:'Bureau à domicile',q:[1,1],f:false},{n:'Canapé',q:[1,1],f:false},
+    {n:'Réfrigérateur',q:[1,1],f:false},{n:'Matériel informatique',q:[1,2],f:true},
+    {n:'Cartons divers',q:[18,38],f:false},
+  ]},
+  { cat:'Personne âgée — réduction de logement', vol:[12,30], extra:['Ascenseur indispensable','Déménagement partiel'], items:[
+    {n:'Lit',q:[1,1],f:false},{n:'Fauteuil',q:[1,2],f:false},
+    {n:'Armoire',q:[1,2],f:false},{n:'TV',q:[1,1],f:true},
+    {n:'Cartons vaisselle',q:[3,8],f:true},{n:'Cartons effets personnels',q:[5,15],f:false},
+  ]},
+  { cat:'Déménagement urgent', vol:[10,35], extra:['Intervention sous 48h'], items:[
+    {n:'Lit',q:[1,2],f:false},{n:'Armoire',q:[1,2],f:false},
+    {n:'Canapé',q:[1,1],f:false},{n:'Cartons non triés',q:[10,25],f:false},
+  ]},
+  { cat:'Appartement sans ascenseur', vol:[22,50], extra:['Pas d\'ascenseur','Escalier étroit'], items:[
+    {n:'Lit double',q:[1,1],f:false},{n:'Armoire 3 portes',q:[1,2],f:false},
+    {n:'Canapé d\'angle',q:[1,1],f:false},{n:'Réfrigérateur',q:[1,1],f:false},
+    {n:'Lave-linge',q:[1,1],f:false},{n:'Cartons divers',q:[15,30],f:false},
+  ]},
+  { cat:'Déménagement avec piano', vol:[18,40], extra:['Piano — monte-meuble à prévoir'], items:[
+    {n:'Piano droit',q:[1,1],f:true},{n:'Lit',q:[1,2],f:false},
+    {n:'Armoire',q:[1,2],f:false},{n:'Canapé',q:[1,1],f:false},
+    {n:'Cartons divers',q:[10,22],f:false},
+  ]},
+  { cat:'Transfert vers garde-meuble', vol:[8,25], items:[
+    {n:'Canapé',q:[1,1],f:false},{n:'Armoire',q:[1,2],f:false},
+    {n:'Cartons affaires diverses',q:[10,35],f:false},{n:'Vélo',q:[1,2],f:false},
+  ]},
+];
+
+const ZONES = {
+  '75':['Paris 11e','Paris 15e','Paris 18e','Paris 20e','Paris 13e','Paris 17e','Paris 3e','Paris 6e'],
+  '13':['Marseille 1er','Marseille 6e','Marseille 8e','Marseille 13e','Aubagne','Allauch','Aix-en-Provence','Vitrolles','Martigues'],
+  '69':['Lyon 3e','Lyon 6e','Lyon 7e','Villeurbanne','Caluire-et-Cuire','Lyon 2e','Lyon 1er'],
+  '33':['Bordeaux Chartrons','Bordeaux Saint-Michel','Bordeaux Caudéran','Mérignac','Pessac','Talence'],
+  '59':['Lille Wazemmes','Lille Moulins','Villeneuve-d\'Ascq','Roubaix','Tourcoing','Hellemmes'],
+  '31':['Toulouse Capitole','Toulouse Compans','Toulouse Minimes','Blagnac','Colomiers','Balma'],
+  '34':['Montpellier Antigone','Montpellier Port Marianne','Castelnau-le-Lez','Lattes','Grabels'],
+  '06':['Nice Centre','Nice Libération','Nice Est','Antibes','Cagnes-sur-Mer','Sophia Antipolis'],
+  '44':['Nantes Centre','Nantes Chantenay','Saint-Herblain','Rezé','Orvault'],
+  '35':['Rennes Centre','Rennes Cleunay','Cesson-Sévigné','Bruz','Saint-Grégoire'],
+  '67':['Strasbourg Centre','Strasbourg Cronenbourg','Illkirch-Graffenstaden','Schiltigheim'],
+  '38':['Grenoble Centre','Grenoble Championnet','Échirolles','Saint-Martin-d\'Hères','Meylan'],
+  '83':['Toulon Centre','La Seyne-sur-Mer','Hyères','Six-Fours-les-Plages'],
+  '76':['Rouen Centre','Rouen Rive Gauche','Mont-Saint-Aignan','Sotteville-lès-Rouen'],
+  '57':['Metz Centre','Metz Borny','Woippy','Montigny-lès-Metz'],
+  '25':['Besançon Centre','Besançon Planoise','Pontarlier'],
+};
+
+const VILLE_DEPT = {
+  'paris':'75','marseille':'13','lyon':'69','bordeaux':'33','lille':'59','toulouse':'31',
+  'montpellier':'34','nice':'06','nantes':'44','rennes':'35','strasbourg':'67','grenoble':'38',
+  'toulon':'83','aix':'13','aubagne':'13','vitrolles':'13','blagnac':'31','mérignac':'33',
+  'pessac':'33','villeurbanne':'69','antibes':'06','rouen':'76','metz':'57','besançon':'25',
+};
+
+const DELAIS = [
+  'sous 48 heures','dans la semaine','sous 10 jours','sous 15 jours',
+  'dans le mois','d\'ici 3 semaines','dans 6 semaines','pour début du mois prochain',
+];
+
+const CONTRAINTES = [
+  'Stationnement à réserver la veille','Accès livraison à confirmer avec le gardien',
+  'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
+  'Ascenseur présent mais petit (90×110 cm)','Parking souterrain — hauteur limitée 2 m',
+  'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
+  'Monte-meuble probablement nécessaire','Client disponible uniquement le matin',
+  'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
+  'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
+  'Matériel informatique à sécuriser',
+];
+
+const Q_B2B = [
+  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires de bureau ?',
+  'Proposez-vous le démontage et remontage du mobilier ?','Gérez-vous le matériel informatique fragile ?',
+  'Combien de personnes pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
+  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
+  'Proposez-vous la fourniture de cartons et emballage ?','Êtes-vous disponible dans ce délai ?',
+];
+
+const Q_B2C = [
+  'Intervenez-vous dans ces deux communes ?','Disposez-vous d\'un monte-meuble si besoin ?',
+  'Proposez-vous le démontage et remontage des meubles ?','Pouvez-vous fournir les cartons et l\'emballage ?',
+  'Combien de déménageurs seriez-vous ?','La fourchette de prix vous semble-t-elle réaliste ?',
+  'Êtes-vous disponible dans ce délai ?','Quelle est votre politique en cas de casse ?',
+  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le samedi ?',
+];
+
+// ── UTILITAIRES ───────────────────────────────────────────────────────────────
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pickN = (a, n) => [...a].sort(() => Math.random() - 0.5).slice(0, n);
+
+function getZones(dept, ville) {
+  const num = dept.trim().replace(/\D/g,'').slice(0,2);
+  if (num && ZONES[num]) return ZONES[num];
+  const key = ville.trim().toLowerCase().split(/[\s-]/)[0];
+  const d = VILLE_DEPT[key];
+  if (d && ZONES[d]) return ZONES[d];
+  return ZONES['13'];
+}
+
+function computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend) {
+  let base = 350 + vol * 28 + dist * 2.5 + workers * duration * 65;
+  if (!elevator && floor > 0) base += floor * 30;
+  if (urgent) base *= 1.25;
+  if (weekend) base *= 1.20;
+  base *= (1 + Math.random() * 0.25);
+  const target = Math.round(base / 50) * 50;
+  return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
+}
+
+// ── GÉNÉRATION ────────────────────────────────────────────────────────────────
+function generer() {
+  const ville = document.getElementById('ville').value.trim();
+  const dept = document.getElementById('dept').value.trim();
+  const zones = getZones(dept, ville);
+
+  let type = selectedType === 'auto' ? (Math.random() > 0.45 ? 'B2C' : 'B2B') : selectedType;
+  let profile, cat, depart, arrivee;
+
+  for (let t = 0; t < 8; t++) {
+    profile = pick(type === 'B2B' ? B2B : B2C);
+    cat = profile.cat;
+    depart = pick(zones);
+    arrivee = pick(zones.filter(z => z !== depart)) || zones[0];
+    const last5 = genHistory.slice(-5);
+    if (!last5.some(h => h.cat === cat && h.depart === depart)) break;
+  }
+  genHistory.push({ cat, depart });
+
+  let items = [], vol, constraints, size = null;
+
+  if (type === 'B2B') {
+    size = profile.size ? rand(...profile.size) : null;
+    for (const it of profile.items) {
+      if (it.qpp !== undefined && size) {
+        items.push({ n: it.n, q: Math.max(1, Math.round(size * it.qpp)), f: it.f });
+      } else if (it.q && Math.random() > 0.25) {
+        items.push({ n: it.n, q: rand(...it.q), f: it.f });
+      }
+    }
+    vol = rand(...profile.volBase);
+    if (size) vol = Math.round(vol * size / 8);
+    constraints = pickN(CONTRAINTES, rand(2, 4));
+  } else {
+    for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
+    vol = rand(...profile.vol);
+    constraints = [...(profile.extra || []), ...pickN(CONTRAINTES, rand(1, 3))];
+  }
+
+  items = items.filter(i => i.q > 0);
+  const delai = pick(DELAIS);
+  const urgent = delai.includes('48h');
+  // Disponibilité client : 90% sous 24h, 10% sous 48h
+  const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
+  const weekend = Math.random() > 0.78;
+  const dist = rand(3, 35);
+  const floor = rand(0, 5);
+  const elevator = Math.random() > 0.4;
+  const workers = vol < 20 ? 2 : vol < 45 ? rand(2,3) : rand(3,5);
+  const duration = Math.max(2, Math.round(vol / 8 + dist / 30));
+  const price = computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend);
+  const questions = pickN(type === 'B2B' ? Q_B2B : Q_B2C, 5);
+
+  let summary;
+  const topItems = items.slice(0,4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+  if (type === 'B2B') {
+    const sizeStr = size ? ` de ${size} collaborateur${size > 1 ? 's' : ''}` : '';
+    summary = `Un${cat.startsWith('A') ? 'e' : ''} <b>${cat.toLowerCase()}${sizeStr}</b> prévoit de transférer ses locaux de <b>${depart}</b> vers <b>${arrivee}</b>, soit environ ${dist} km. Le besoin comprend notamment : ${topItems}. Volume estimé : <b>${vol} m³</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${price.target.toLocaleString('fr-FR')} € HT</b>.`;
+  } else {
+    const person = cat.startsWith('Fam') ? 'Une famille' : cat.startsWith('Cou') ? 'Un couple' : cat.startsWith('Per') ? 'Une personne âgée' : 'Le client';
+    summary = `${person} (<b>${cat.toLowerCase()}</b>) souhaite déménager de <b>${depart}</b> vers <b>${arrivee}</b> (environ ${dist} km). Éléments : ${topItems}. Volume estimé : <b>${vol} m³</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${price.target.toLocaleString('fr-FR')} € TTC</b>.`;
+  }
+
+  afficher({ type, cat, depart, arrivee, dist, items, vol, constraints, delai, dispo, workers, duration, floor, elevator, price, questions, summary, urgent, weekend });
+}
+
+function afficher(d) {
+  const pl = d.type === 'B2B' ? 'HT' : 'TTC';
+  const flags = [
+    d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
+    `<span class="flag" style="background:#e0f2fe;color:#0369a1">📞 Joignable ${d.dispo}</span>`,
+    d.weekend ? '<span class="flag weekend">📅 Week-end</span>' : '',
+    (!d.elevator && d.floor > 0) ? `<span class="flag noelev">🏢 Étage ${d.floor} sans ascenseur</span>` : '',
+  ].filter(Boolean).join('');
+
+  document.getElementById('result').innerHTML = `
+    <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
+    <div class="result-title">${d.cat}</div>
+    <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.vol} m³ · ${d.workers} déménageurs · ${d.duration}h</div>
+    ${flags ? `<div class="flags">${flags}</div>` : ''}
+    <div class="section">
+      <div class="section-title">Résumé</div>
+      <div class="summary-text">${d.summary}</div>
+    </div>
+    <div class="section">
+      <div class="section-title">Éléments à déménager</div>
+      <div class="items-grid">${d.items.map(i => `<div class="item-row"><span>${i.n}${i.f ? '<span class="fragile">fragile</span>' : ''}</span><span class="item-qty">×${i.q}</span></div>`).join('')}</div>
+    </div>
+    ${d.constraints.length ? `<div class="section"><div class="section-title">Contraintes</div><div class="tags">${d.constraints.map(c => `<span class="tag">${c}</span>`).join('')}</div></div>` : ''}
+    <div class="section">
+      <div class="section-title">Budget estimé</div>
+      <div class="budget-bar">
+        <div class="budget-item"><div class="budget-label">Minimum</div><div class="budget-value">${d.price.min.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+        <div class="budget-item main"><div class="budget-label">Cible</div><div class="budget-value">${d.price.target.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+        <div class="budget-item"><div class="budget-label">Maximum</div><div class="budget-value">${d.price.max.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Questions à poser</div>
+      <ul class="questions-list">${d.questions.map((q,i) => `<li><span class="q-num">${i+1}.</span>${q}</li>`).join('')}</ul>
+    </div>
+    <div class="actions">
+      <button class="btn-copy" onclick="copier()">Copier le résumé</button>
+      <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
+    </div>
+  `;
+  document.getElementById('result').className = 'result show';
+  document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function copier() {
+  const text = document.querySelector('.summary-text')?.innerText || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '✓ Copié';
+    setTimeout(() => btn.textContent = 'Copier le résumé', 2000);
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && ['ville','dept'].includes(e.target.id)) generer();
+});
+</script>
+</body>
+</html>

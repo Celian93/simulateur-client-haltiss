@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haltiss — Générateur</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #111; min-height: 100vh; padding: 32px 16px; }
+  .container { max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 1.2rem; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+  .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 24px; }
+
+  .form { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e5e5; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  label { font-size: 0.8rem; font-weight: 600; color: #555; }
+  input, select { padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.9rem; color: #111; outline: none; transition: border-color 0.15s; }
+  input:focus, select:focus { border-color: #4f46e5; }
+
+  .type-row { display: flex; gap: 8px; }
+  .type-btn { flex: 1; padding: 8px; border: 1.5px solid #ddd; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; color: #555; }
+  .type-btn.active { background: #4f46e5; color: white; border-color: #4f46e5; }
+  .type-btn.auto.active { background: #6b7280; border-color: #6b7280; }
+
+  button#generer { padding: 11px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  button#generer:hover { background: #4338ca; }
+  button#generer:active { transform: scale(0.98); }
+
+  .result { background: white; border-radius: 12px; border: 1px solid #e5e5e5; padding: 20px; margin-top: 16px; display: none; }
+  .result.show { display: block; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; margin-bottom: 12px; }
+  .badge.b2b { background: #dbeafe; color: #1d4ed8; }
+  .badge.b2c { background: #dcfce7; color: #15803d; }
+
+  .result-title { font-size: 1rem; font-weight: 700; color: #111; margin-bottom: 4px; }
+  .result-sub { font-size: 0.82rem; color: #888; margin-bottom: 16px; }
+
+  .section { margin-bottom: 16px; }
+  .section-title { font-size: 0.75rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+  .summary-text { font-size: 0.9rem; line-height: 1.6; color: #222; background: #f9f9f9; border-radius: 8px; padding: 12px; }
+  .summary-text b { color: #111; }
+
+  .items-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .item-row { font-size: 0.85rem; color: #333; padding: 5px 8px; background: #f9f9f9; border-radius: 6px; display: flex; justify-content: space-between; }
+  .item-qty { font-weight: 600; color: #4f46e5; }
+  .fragile { font-size: 0.7rem; color: #d97706; font-weight: 600; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.8rem; background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 6px; }
+
+  .budget-bar { display: flex; gap: 8px; }
+  .budget-item { flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px; background: #f9f9f9; }
+  .budget-item.main { background: #eef2ff; }
+  .budget-label { font-size: 0.7rem; color: #888; font-weight: 600; }
+  .budget-value { font-size: 1rem; font-weight: 700; color: #111; margin-top: 2px; }
+  .budget-item.main .budget-value { color: #4f46e5; font-size: 1.15rem; }
+  .budget-suffix { font-size: 0.7rem; font-weight: 400; color: #888; }
+
+  .questions-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .questions-list li { font-size: 0.85rem; color: #333; padding: 6px 10px; background: #f9f9f9; border-radius: 6px; display: flex; gap: 8px; }
+  .q-num { color: #4f46e5; font-weight: 700; flex-shrink: 0; }
+
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-copy { flex: 1; padding: 9px; border: 1.5px solid #ddd; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #333; transition: all 0.15s; }
+  .btn-copy:hover { border-color: #4f46e5; color: #4f46e5; }
+  .btn-new { flex: 1; padding: 9px; border: 1.5px solid #4f46e5; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #4f46e5; transition: all 0.15s; }
+  .btn-new:hover { background: #4f46e5; color: white; }
+
+  .info-route { font-size: 0.8rem; color: #888; background: #f9f9f9; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; }
+  .info-route b { color: #333; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Haltiss — Générateur de clients</h1>
+  <p class="subtitle">Renseigne la zone du prestataire, génère un client réaliste.</p>
+
+  <div class="form">
+    <div class="row">
+      <div class="field">
+        <label>Ville du prestataire</label>
+        <input type="text" id="ville" placeholder="Ex : Marseille" />
+      </div>
+      <div class="field">
+        <label>Département</label>
+        <input type="text" id="dept" placeholder="Ex : 13 ou Bouches-du-Rhône" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Type de client</label>
+      <div class="type-row">
+        <button class="type-btn auto active" data-type="auto" onclick="selectType('auto')">Aléatoire</button>
+        <button class="type-btn" data-type="B2B" onclick="selectType('B2B')">Professionnel (B2B)</button>
+        <button class="type-btn" data-type="B2C" onclick="selectType('B2C')">Particulier (B2C)</button>
+      </div>
+    </div>
+
+    <button id="generer" onclick="generer()">Générer un client</button>
+  </div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+let selectedType = 'auto';
+const genHistory = [];
+
+function selectType(t) {
+  selectedType = t;
+  document.querySelectorAll('.type-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.dataset.type === t) b.classList.add('active');
+  });
+}
+
+// ── Données ───────────────────────────────────────────────────────────────────
+
+const B2B = [
+  {
+    cat: 'Cabinet comptable',
+    size: [3,12],
+    items: [
+      {n:'Bureau', qpp:1, f:false}, {n:'Fauteuil de bureau', qpp:1, f:false},
+      {n:'Ordinateur', qpp:1, f:true}, {n:'Écran', qpp:1.3, f:true},
+      {n:'Armoire à archives', q:[2,5], f:false}, {n:'Cartons d\'archives', q:[20,60], f:false},
+      {n:'Table de réunion', q:[1,2], f:false}, {n:'Imprimante', q:[1,2], f:true},
+    ],
+    volBase: [15,35],
+  },
+  {
+    cat: 'Cabinet médical',
+    size: [2,6],
+    items: [
+      {n:'Bureau médecin', qpp:1, f:false}, {n:'Fauteuil', qpp:1, f:false},
+      {n:'Table d\'examen', q:[1,3], f:false}, {n:'Armoire médicale', q:[2,4], f:false},
+      {n:'Chaises salle d\'attente', q:[6,14], f:false}, {n:'Cartons dossiers', q:[10,30], f:false},
+      {n:'Ordinateur', q:[1,3], f:true}, {n:'Mobilier d\'accueil', q:[1,2], f:false},
+    ],
+    volBase: [12,28],
+  },
+  {
+    cat: 'Agence immobilière',
+    size: [4,10],
+    items: [
+      {n:'Bureau', qpp:1, f:false}, {n:'Fauteuil', qpp:1, f:false},
+      {n:'Ordinateur', qpp:1, f:true}, {n:'Écran', qpp:1.2, f:true},
+      {n:'Armoire', q:[2,5], f:false}, {n:'Table de réunion', q:[1,2], f:false},
+      {n:'Présentoir / vitrine', q:[1,3], f:true}, {n:'Cartons administratifs', q:[10,25], f:false},
+    ],
+    volBase: [15,30],
+  },
+  {
+    cat: 'Agence de communication',
+    size: [6,18],
+    items: [
+      {n:'Bureau', qpp:1, f:false}, {n:'Fauteuil ergonomique', qpp:1, f:false},
+      {n:'Ordinateur portable', qpp:1, f:true}, {n:'Écran', qpp:1.5, f:true},
+      {n:'Table de réunion', q:[1,3], f:false}, {n:'Écran TV / projecteur', q:[1,3], f:true},
+      {n:'Tablette graphique', q:[2,6], f:true}, {n:'Cartons matériel', q:[15,40], f:false},
+    ],
+    volBase: [20,50],
+  },
+  {
+    cat: 'Entreprise informatique',
+    size: [5,25],
+    items: [
+      {n:'Bureau', qpp:1, f:false}, {n:'Fauteuil ergonomique', qpp:1, f:false},
+      {n:'Ordinateur / laptop', qpp:1, f:true}, {n:'Écran', qpp:2, f:true},
+      {n:'Baie serveur', q:[1,4], f:true}, {n:'Switch réseau', q:[2,6], f:true},
+      {n:'Onduleur', q:[2,5], f:true}, {n:'Cartons câblage', q:[10,30], f:false},
+    ],
+    volBase: [20,55],
+  },
+  {
+    cat: 'Commerce de détail',
+    size: null,
+    items: [
+      {n:'Rayonnage métal', q:[4,20], f:false}, {n:'Présentoir', q:[2,8], f:false},
+      {n:'Caisse enregistreuse', q:[1,3], f:true}, {n:'Stock (cartons)', q:[25,100], f:false},
+      {n:'Bureau caissier', q:[1,2], f:false}, {n:'Vitrine', q:[1,4], f:true},
+      {n:'Enseigne démontée', q:[1,1], f:true},
+    ],
+    volBase: [20,60],
+  },
+  {
+    cat: 'Restaurant',
+    size: null,
+    items: [
+      {n:'Table de restaurant', q:[8,30], f:false}, {n:'Chaise de restaurant', q:[16,80], f:false},
+      {n:'Vaisselle emballée (carton)', q:[10,35], f:true}, {n:'Mobilier de bar', q:[1,3], f:false},
+      {n:'Équipement cuisine démontable', q:[3,8], f:true}, {n:'Caisse enregistreuse', q:[1,2], f:true},
+    ],
+    volBase: [25,70],
+  },
+  {
+    cat: 'Étude notariale',
+    size: [4,10],
+    items: [
+      {n:'Bureau', qpp:1, f:false}, {n:'Fauteuil cuir', qpp:1, f:false},
+      {n:'Armoire à archives sécurisée', q:[3,8], f:false}, {n:'Coffre-fort', q:[1,2], f:false},
+      {n:'Cartons archives', q:[40,120], f:false}, {n:'Bibliothèque', q:[2,5], f:false},
+      {n:'Ordinateur', q:[2,6], f:true},
+    ],
+    volBase: [20,50],
+  },
+  {
+    cat: 'Organisme de formation',
+    size: [3,12],
+    items: [
+      {n:'Table de formation', qpp:1.5, f:false}, {n:'Chaise', qpp:1.5, f:false},
+      {n:'Tableau blanc', q:[2,6], f:false}, {n:'Vidéoprojecteur', q:[1,4], f:true},
+      {n:'Bureau formateur', q:[2,4], f:false}, {n:'Cartons matériel pédagogique', q:[10,30], f:false},
+    ],
+    volBase: [15,40],
+  },
+  {
+    cat: 'Pharmacie',
+    size: null,
+    items: [
+      {n:'Rayonnage pharmacie', q:[6,18], f:false}, {n:'Comptoir d\'accueil', q:[1,2], f:false},
+      {n:'Réfrigérateur médicaments', q:[1,3], f:true}, {n:'Stock médicaments (cartons)', q:[30,80], f:true},
+      {n:'Présentoir parapharmacie', q:[4,12], f:false}, {n:'Ordinateur + TPE', q:[2,4], f:true},
+    ],
+    volBase: [20,50],
+  },
+];
+
+const B2C = [
+  {
+    cat: 'Studio étudiant',
+    items: [
+      {n:'Lit 1 personne', q:[1,1], f:false}, {n:'Bureau', q:[1,1], f:false},
+      {n:'Armoire', q:[1,1], f:false}, {n:'Chaise', q:[1,2], f:false},
+      {n:'Cartons affaires', q:[5,15], f:false}, {n:'Électroménager (micro-ondes…)', q:[1,1], f:true},
+    ],
+    vol: [8,18], extra: ['Pas d\'ascenseur', 'Accès étroit'],
+  },
+  {
+    cat: 'Couple — appartement 2 pièces',
+    items: [
+      {n:'Lit double', q:[1,1], f:false}, {n:'Armoire', q:[1,2], f:false},
+      {n:'Canapé', q:[1,1], f:false}, {n:'Table salle à manger', q:[1,1], f:false},
+      {n:'Chaise', q:[2,6], f:false}, {n:'Réfrigérateur', q:[1,1], f:false},
+      {n:'Lave-linge', q:[1,1], f:false}, {n:'TV', q:[1,1], f:true},
+      {n:'Cartons divers', q:[12,30], f:false},
+    ],
+    vol: [20,38],
+  },
+  {
+    cat: 'Famille — maison',
+    items: [
+      {n:'Lit double', q:[1,1], f:false}, {n:'Lit enfant', q:[1,2], f:false},
+      {n:'Armoire', q:[2,4], f:false}, {n:'Canapé', q:[1,2], f:false},
+      {n:'Table salle à manger', q:[1,1], f:false}, {n:'Chaise', q:[4,8], f:false},
+      {n:'Réfrigérateur américain', q:[1,1], f:false}, {n:'Lave-linge', q:[1,1], f:false},
+      {n:'Lave-vaisselle', q:[1,1], f:false}, {n:'TV', q:[1,2], f:true},
+      {n:'Cartons vaisselle', q:[5,12], f:true}, {n:'Cartons livres / divers', q:[20,45], f:false},
+    ],
+    vol: [40,80],
+  },
+  {
+    cat: 'Mutation professionnelle',
+    items: [
+      {n:'Lit double', q:[1,1], f:false}, {n:'Armoire', q:[1,3], f:false},
+      {n:'Bureau à domicile', q:[1,1], f:false}, {n:'Canapé', q:[1,1], f:false},
+      {n:'Réfrigérateur', q:[1,1], f:false}, {n:'Matériel informatique', q:[1,2], f:true},
+      {n:'Cartons divers', q:[18,38], f:false},
+    ],
+    vol: [25,50],
+  },
+  {
+    cat: 'Personne âgée — réduction de logement',
+    items: [
+      {n:'Lit', q:[1,1], f:false}, {n:'Fauteuil', q:[1,2], f:false},
+      {n:'Armoire', q:[1,2], f:false}, {n:'TV', q:[1,1], f:true},
+      {n:'Cartons vaisselle', q:[3,8], f:true}, {n:'Cartons effets personnels', q:[5,15], f:false},
+    ],
+    vol: [12,30], extra: ['Ascenseur indispensable', 'Déménagement partiel'],
+  },
+  {
+    cat: 'Déménagement urgent',
+    items: [
+      {n:'Lit', q:[1,2], f:false}, {n:'Armoire', q:[1,2], f:false},
+      {n:'Canapé', q:[1,1], f:false}, {n:'Cartons non triés', q:[10,25], f:false},
+    ],
+    vol: [10,35], extra: ['Intervention sous 48h'],
+  },
+  {
+    cat: 'Appartement sans ascenseur',
+    items: [
+      {n:'Lit double', q:[1,1], f:false}, {n:'Armoire 3 portes', q:[1,2], f:false},
+      {n:'Canapé d\'angle', q:[1,1], f:false}, {n:'Réfrigérateur', q:[1,1], f:false},
+      {n:'Lave-linge', q:[1,1], f:false}, {n:'Cartons divers', q:[15,30], f:false},
+    ],
+    vol: [22,50], extra: ['Pas d\'ascenseur', 'Escalier étroit'],
+  },
+  {
+    cat: 'Déménagement avec piano',
+    items: [
+      {n:'Piano droit', q:[1,1], f:true}, {n:'Lit', q:[1,2], f:false},
+      {n:'Armoire', q:[1,2], f:false}, {n:'Canapé', q:[1,1], f:false},
+      {n:'Cartons divers', q:[10,22], f:false},
+    ],
+    vol: [18,40], extra: ['Piano — monte-meuble à prévoir'],
+  },
+  {
+    cat: 'Transfert vers garde-meuble',
+    items: [
+      {n:'Canapé', q:[1,1], f:false}, {n:'Armoire', q:[1,2], f:false},
+      {n:'Cartons affaires diverses', q:[10,35], f:false}, {n:'Vélo', q:[1,2], f:false},
+      {n:'Mobilier jardin plié', q:[1,2], f:false},
+    ],
+    vol: [8,25],
+  },
+];
+
+const ZONES_DEPART = {
+  '75': ['Paris 11e','Paris 15e','Paris 18e','Paris 20e','Paris 13e','Paris 17e','Paris 3e','Paris 6e'],
+  '13': ['Marseille 1er','Marseille 6e','Marseille 8e','Marseille 13e','Aubagne','Allauch','Aix-en-Provence','Vitrolles','Martigues'],
+  '69': ['Lyon 3e','Lyon 6e','Lyon 7e','Villeurbanne','Caluire-et-Cuire','Lyon 2e','Lyon 1er'],
+  '33': ['Bordeaux Chartrons','Bordeaux Saint-Michel','Bordeaux Caudéran','Mérignac','Pessac','Talence'],
+  '59': ['Lille Wazemmes','Lille Moulins','Villeneuve-d\'Ascq','Roubaix','Tourcoing','Hellemmes'],
+  '31': ['Toulouse Capitole','Toulouse Compans','Toulouse Minimes','Blagnac','Colomiers','Balma'],
+  '34': ['Montpellier Antigone','Montpellier Port Marianne','Castelnau-le-Lez','Lattes','Grabels'],
+  '06': ['Nice Centre','Nice Libération','Nice Est','Antibes','Cagnes-sur-Mer','Sophia Antipolis'],
+  '44': ['Nantes Centre','Nantes Chantenay','Saint-Herblain','Rezé','Orvault'],
+  '35': ['Rennes Centre','Rennes Cleunay','Cesson-Sévigné','Bruz','Saint-Grégoire'],
+  '67': ['Strasbourg Centre','Strasbourg Cronenbourg','Illkirch-Graffenstaden','Schiltigheim'],
+  '38': ['Grenoble Centre','Grenoble Championnet','Échirolles','Saint-Martin-d\'Hères','Meylan'],
+};
+
+const DELAIS = [
+  'sous 48 heures', 'dans la semaine', 'sous 10 jours', 'sous 15 jours',
+  'dans le mois', 'd\'ici 3 semaines', 'dans 6 semaines', 'pour début du mois prochain',
+];
+
+const CONTRAINTES_GENERALES = [
+  'Stationnement à réserver la veille', 'Accès livraison à confirmer avec le gardien',
+  'Intervention souhaitée en matinée', 'Quelques objets à protéger avec couvertures',
+  'Ascenseur présent mais petit (90×110 cm)', 'Parking souterrain — hauteur limitée 2 m',
+  'Code d\'entrée à obtenir', 'Fin de bail à respecter impérativement',
+  'Monte-meuble probablement nécessaire', 'Client disponible uniquement le matin',
+  'Voisinage à respecter (pas d\'intervention avant 8h)', 'Prestataire devra fournir les cartons',
+];
+
+const QUESTIONS_B2B = [
+  'Intervenez-vous dans ce secteur ?',
+  'Pouvez-vous intervenir en dehors des horaires de bureau ?',
+  'Proposez-vous le démontage et remontage du mobilier ?',
+  'Gérez-vous le transport de matériel informatique fragile ?',
+  'Combien de personnes pouvez-vous mobiliser ?',
+  'La fourchette de prix vous paraît-elle cohérente ?',
+  'Disposez-vous d\'une assurance RC professionnelle pour ce type de prestation ?',
+  'Une visite technique préalable est-elle nécessaire ?',
+  'Êtes-vous disponible ce délai ?',
+  'Proposez-vous la fourniture de cartons et emballage ?',
+];
+
+const QUESTIONS_B2C = [
+  'Intervenez-vous dans ces deux communes ?',
+  'Disposez-vous d\'un monte-meuble si besoin ?',
+  'Proposez-vous le démontage et remontage des meubles ?',
+  'Pouvez-vous fournir les cartons et l\'emballage ?',
+  'Combien de déménageurs seriez-vous ?',
+  'La fourchette de prix vous semble-t-elle réaliste ?',
+  'Êtes-vous disponible à ce délai ?',
+  'Votre politique en cas de casse ou dommage ?',
+  'Avez-vous besoin d\'une visite préalable ou travaillez-vous sur devis à distance ?',
+  'Travaillez-vous aussi le samedi ?',
+];
+
+// ── Utilitaires ───────────────────────────────────────────────────────────────
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pickN(arr, n) { return [...arr].sort(() => Math.random() - 0.5).slice(0, n); }
+
+const VILLE_TO_DEPT = {
+  'paris':75,'marseille':13,'lyon':69,'bordeaux':33,'lille':59,'toulouse':31,
+  'montpellier':34,'nice':6,'nantes':44,'rennes':35,'strasbourg':67,'grenoble':38,
+  'toulon':83,'aix':13,'aubagne':13,'vitrolles':13,'blagnac':31,'mérignac':33,
+  'pessac':33,'villeurbanne':69,'antibes':6,
+};
+
+function getZones(dept, ville) {
+  // Essai 1 : numéro de département tapé
+  const num = dept.trim().replace(/\D/g,'').slice(0,2);
+  if (num && ZONES_DEPART[num]) return ZONES_DEPART[num];
+  // Essai 2 : déduire depuis la ville
+  const villeKey = ville.trim().toLowerCase().split(/[\s-]/)[0];
+  const deptFromVille = VILLE_TO_DEPT[villeKey];
+  if (deptFromVille && ZONES_DEPART[String(deptFromVille).padStart(2,'0')]) {
+    return ZONES_DEPART[String(deptFromVille).padStart(2,'0')];
+  }
+  if (deptFromVille && ZONES_DEPART[String(deptFromVille)]) {
+    return ZONES_DEPART[String(deptFromVille)];
+  }
+  // Fallback : Marseille par défaut
+  return ZONES_DEPART['13'];
+}
+
+function computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend, geo) {
+  let base = 350;
+  base += vol * 28;
+  base += dist * 2.5;
+  base += workers * duration * 65;
+  if (!elevator && floor > 0) base += floor * 30;
+  if (urgent) base *= 1.25;
+  if (weekend) base *= 1.20;
+  base *= geo;
+  const target = Math.round(base / 50) * 50;
+  return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
+}
+
+function isTooSimilar(cat, depart) {
+  const last5 = genHistory.slice(-5);
+  return last5.some(h => h.cat === cat && h.depart === depart);
+}
+
+// ── Génération principale ─────────────────────────────────────────────────────
+
+function generer() {
+  const ville = document.getElementById('ville').value.trim();
+  const dept = document.getElementById('dept').value.trim();
+
+  const zones = getZones(dept, ville);
+
+  let type = selectedType;
+  if (type === 'auto') type = Math.random() > 0.45 ? 'B2C' : 'B2B';
+
+  let profile, items = [], vol, constraints = [], cat, depart, arrivee, size;
+
+  // Anti-répétition : max 8 tentatives
+  for (let t = 0; t < 8; t++) {
+    if (type === 'B2B') {
+      profile = pick(B2B);
+      cat = profile.cat;
+      depart = pick(zones);
+      arrivee = pick(zones.filter(z => z !== depart));
+      if (!arrivee) arrivee = zones[0];
+    } else {
+      profile = pick(B2C);
+      cat = profile.cat;
+      depart = pick(zones);
+      arrivee = pick(zones.filter(z => z !== depart));
+      if (!arrivee) arrivee = zones[0];
+    }
+    if (!isTooSimilar(cat, depart)) break;
+  }
+  genHistory.push({ cat, depart });
+
+  // Items
+  if (type === 'B2B') {
+    size = profile.size ? rand(...profile.size) : null;
+    for (const it of profile.items) {
+      if (it.qpp !== undefined && size) {
+        const qty = Math.max(1, Math.round(size * it.qpp));
+        items.push({ n: it.n, q: qty, f: it.f });
+      } else if (it.q) {
+        if (Math.random() > 0.3) items.push({ n: it.n, q: rand(...it.q), f: it.f });
+      }
+    }
+    vol = rand(...profile.volBase);
+    if (size) vol = Math.round(vol * size / 8);
+    constraints = pickN([...CONTRAINTES_GENERALES, 'Intervention le vendredi soir', 'Reprise d\'activité lundi — livraison vendredi impérative', 'Matériel informatique à sécuriser', 'Câblage réseau à déposer avant la prestation'], rand(2, 4));
+  } else {
+    for (const it of profile.items) {
+      items.push({ n: it.n, q: rand(...it.q), f: it.f });
+    }
+    vol = rand(...profile.vol);
+    constraints = [...(profile.extra || []), ...pickN(CONTRAINTES_GENERALES, rand(1, 3))];
+  }
+
+  items = items.filter(i => i.q > 0);
+
+  // Délai et date
+  const delai = pick(DELAIS);
+  const urgent = delai.includes('48h');
+  const weekend = Math.random() > 0.75;
+
+  // Distance approx
+  const dist = rand(3, 35);
+
+  // Prix
+  const floor = rand(0, 5);
+  const elevator = Math.random() > 0.4;
+  const workers = vol < 20 ? 2 : vol < 45 ? rand(2,3) : rand(3,5);
+  const duration = Math.max(2, Math.round(vol / 8 + dist / 30));
+  const geo = 1.0 + Math.random() * 0.3;
+  const price = computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend, geo);
+
+  // Questions
+  const questions = pickN(type === 'B2B' ? QUESTIONS_B2B : QUESTIONS_B2C, 5);
+
+  // Résumé
+  let summary = '';
+  if (type === 'B2B') {
+    const sizeStr = size ? ` de ${size} collaborateur${size > 1 ? 's' : ''}` : '';
+    const topItems = items.slice(0,4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+    summary = `Un${cat.startsWith('A') ? 'e' : ''} <b>${cat.toLowerCase()}${sizeStr}</b> prévoit de transférer ses locaux de <b>${depart}</b> vers <b>${arrivee}</b>, soit environ ${dist} km. Le besoin comprend notamment : ${topItems}. Volume estimé : <b>${vol} m³</b>. Intervention souhaitée <b>${delai}</b>. Budget cible estimé : <b>${price.target.toLocaleString('fr-FR')} € HT</b>.`;
+  } else {
+    const person = cat.startsWith('Fam') ? 'Une famille' : cat.startsWith('Couple') ? 'Un couple' : cat.startsWith('Per') ? 'Une personne âgée' : 'Le client';
+    const topItems = items.slice(0,4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+    summary = `${person} (<b>${cat.toLowerCase()}</b>) souhaite déménager de <b>${depart}</b> vers <b>${arrivee}</b> (environ ${dist} km). Éléments : ${topItems}. Volume estimé : <b>${vol} m³</b>. Souhaite intervenir <b>${delai}</b>. Budget cible : <b>${price.target.toLocaleString('fr-FR')} € TTC</b>.`;
+  }
+
+  afficher({ type, cat, depart, arrivee, dist, items, vol, constraints, delai, workers, duration, floor, elevator, price, questions, summary, urgent, weekend });
+}
+
+function afficher(d) {
+  const priceLabel = d.type === 'B2B' ? 'HT' : 'TTC';
+  const badgeClass = d.type === 'B2B' ? 'b2b' : 'b2c';
+
+  const itemsHtml = d.items.map(i =>
+    `<div class="item-row"><span>${i.n}${i.f ? ' <span class="fragile">fragile</span>' : ''}</span><span class="item-qty">×${i.q}</span></div>`
+  ).join('');
+
+  const contraintesHtml = d.constraints.map(c => `<span class="tag">${c}</span>`).join('');
+  const questionsHtml = d.questions.map((q,i) => `<li><span class="q-num">${i+1}.</span>${q}</li>`).join('');
+
+  const extra = [];
+  if (d.urgent) extra.push('⚡ Urgent');
+  if (d.weekend) extra.push('📅 Week-end');
+  if (!d.elevator && d.floor > 0) extra.push(`🏢 Étage ${d.floor} sans ascenseur`);
+
+  document.getElementById('result').innerHTML = `
+    <span class="badge ${badgeClass}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
+    <div class="result-title">${d.cat}</div>
+    <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.vol} m³ · ${d.workers} déménageurs · ${d.duration}h</div>
+
+    ${extra.length ? `<div class="tags" style="margin-bottom:12px">${extra.map(e=>`<span class="tag">${e}</span>`).join('')}</div>` : ''}
+
+    <div class="section">
+      <div class="section-title">Résumé</div>
+      <div class="summary-text">${d.summary}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Éléments à déménager</div>
+      <div class="items-grid">${itemsHtml}</div>
+    </div>
+
+    ${d.constraints.length ? `<div class="section"><div class="section-title">Contraintes</div><div class="tags">${contraintesHtml}</div></div>` : ''}
+
+    <div class="section">
+      <div class="section-title">Budget estimé</div>
+      <div class="budget-bar">
+        <div class="budget-item"><div class="budget-label">Minimum</div><div class="budget-value">${d.price.min.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${priceLabel}</span></div></div>
+        <div class="budget-item main"><div class="budget-label">Cible</div><div class="budget-value">${d.price.target.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${priceLabel}</span></div></div>
+        <div class="budget-item"><div class="budget-label">Maximum</div><div class="budget-value">${d.price.max.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${priceLabel}</span></div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Questions à poser</div>
+      <ul class="questions-list">${questionsHtml}</ul>
+    </div>
+
+    <div class="actions">
+      <button class="btn-copy" onclick="copier()">Copier le résumé</button>
+      <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
+    </div>
+  `;
+  document.getElementById('result').className = 'result show';
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copier() {
+  const el = document.querySelector('.summary-text');
+  const text = el ? el.innerText : '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = 'Copié ✓';
+    setTimeout(() => btn.textContent = 'Copier le résumé', 1800);
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.target.id === 'ville' || e.target.id === 'dept')) generer();
+});
+</script>
+</body>
+</html>
