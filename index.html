@@ -117,6 +117,58 @@ header img { height: 28px; display: block; }
 }
 .btn-logout:hover { border-color: #f87171; color: #f87171; }
 
+.btn-admin {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-admin:hover { border-color: #10b981; color: #6ee7b7; }
+
+.admin-panel {
+  display: none;
+  max-width: 680px;
+  margin: 16px auto 0;
+  padding: 0 16px;
+}
+.admin-panel.show {
+  display: block;
+}
+.admin-panel-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+.admin-panel-desc { font-size: 0.78rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.5; }
+.admin-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-form input {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 13px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+  background: rgba(2,6,23,0.5);
+  outline: none;
+}
+.admin-form input:focus { border-color: #10b981; }
+.btn-admin-create {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #10b981, #22d3ee);
+  color: #022c22;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-admin-create:disabled { opacity: 0.7; cursor: default; }
+.admin-status { font-size: 0.8rem; margin-top: 10px; color: #94a3b8; }
+.admin-status.success { color: #6ee7b7; }
+.admin-status.error { color: #fca5a5; }
+
 /* ── MAIN ── */
 main {
   max-width: 680px;
@@ -414,9 +466,21 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
     <span class="logo-plate"><img src="logo.png" alt="Haltiss" /></span>
     <div class="user-bar">
       <span class="user-name" id="user-name"></span>
+      <button class="btn-admin" onclick="toggleAdminPanel()">⚙️ Gérer les agents</button>
       <button class="btn-logout" onclick="netlifyIdentity.logout()">Déconnexion</button>
     </div>
   </header>
+
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-panel-title">Créer un compte agent</div>
+    <p class="admin-panel-desc">Réservé aux administrateurs. L'agent se connectera directement avec cet e-mail et ce code, sans invitation ni mot de passe à choisir.</p>
+    <div class="admin-form">
+      <input type="email" id="admin-agent-email" placeholder="email.pro@haltiss.com" />
+      <input type="text" id="admin-agent-code" placeholder="Code unique (8 caractères min.)" />
+      <button class="btn-admin-create" onclick="creerAgent()">Créer le compte</button>
+    </div>
+    <p class="admin-status" id="admin-status"></p>
+  </div>
 
   <main>
     <div class="page-title">Réseau Haltiss</div>
@@ -1303,6 +1367,64 @@ function copier() {
     btn.textContent = '✓ Copié';
     setTimeout(() => btn.textContent = 'Copier la fiche', 2000);
   });
+}
+
+function toggleAdminPanel() {
+  document.getElementById('admin-panel').classList.toggle('show');
+}
+
+async function creerAgent() {
+  const emailInput = document.getElementById('admin-agent-email');
+  const codeInput = document.getElementById('admin-agent-code');
+  const statusEl = document.getElementById('admin-status');
+  const btn = document.querySelector('.btn-admin-create');
+  const email = emailInput.value.trim();
+  const code = codeInput.value.trim();
+
+  statusEl.className = 'admin-status';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    statusEl.textContent = 'Merci de renseigner un e-mail valide.';
+    statusEl.classList.add('error');
+    return;
+  }
+  if (code.length < 8) {
+    statusEl.textContent = 'Le code doit faire au moins 8 caractères.';
+    statusEl.classList.add('error');
+    return;
+  }
+
+  const user = netlifyIdentity.currentUser();
+  if (!user) {
+    statusEl.textContent = 'Vous devez être connecté pour créer un compte agent.';
+    statusEl.classList.add('error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Création…';
+  statusEl.textContent = '';
+
+  try {
+    const token = await user.jwt();
+    const res = await fetch('/.netlify/functions/create-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ email, code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la création');
+
+    statusEl.textContent = `Compte créé pour ${email}. Transmettez-lui cet e-mail et ce code pour se connecter.`;
+    statusEl.classList.add('success');
+    emailInput.value = '';
+    codeInput.value = '';
+  } catch (e) {
+    statusEl.textContent = e.message || 'Impossible de créer le compte pour le moment.';
+    statusEl.classList.add('error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Créer le compte';
+  }
 }
 
 async function reserverClient() {
