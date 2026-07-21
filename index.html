@@ -798,9 +798,14 @@ const SECTORS = {
     B2B: B2B_DEMENAGEMENT,
     B2C: B2C_DEMENAGEMENT,
     contraintes: CONTRAINTES_DEMENAGEMENT,
-    price: { base: 350, unitRate: 28, distRate: 2.5, workerRate: 65, urgentMult: 1.25, weekendMult: 1.20, floor: 250 },
+    // Calibré sur les tarifs réels du marché français du déménagement (2024-2025) :
+    // ~350-700 € pour un studio/2 pièces, ~900-1500 € pour une maison, majoré par
+    // km/heures de main-d'œuvre plutôt que par un forfait de base élevé.
+    price: { base: 150, unitRate: 18, distRate: 1.2, workerRate: 40, urgentMult: 1.25, weekendMult: 1.20, floor: 250 },
     workers: amount => amount < 20 ? 2 : amount < 45 ? rand(2, 3) : rand(3, 5),
-    duration: (amount, dist) => Math.max(2, Math.round(amount / 8 + dist / 30)),
+    // Durée = charge de travail totale (personnes×heures) répartie sur l'équipe,
+    // pour ne pas afficher des interventions irréalistes de 20h+ à effectif constant.
+    duration: (amount, dist, workers) => Math.max(2, Math.round((amount * 0.3 + dist * 0.15) / workers)),
     categorize: categorizeItemDemenagement,
     categoryOrder: ['Mobilier', 'Informatique', 'Cartons / Archives'],
     equipment: amount => recommendTruck(amount),
@@ -820,9 +825,12 @@ const SECTORS = {
     B2B: B2B_NETTOYAGE,
     B2C: B2C_NETTOYAGE,
     contraintes: CONTRAINTES_NETTOYAGE,
-    price: { base: 90, unitRate: 3.2, distRate: 2, workerRate: 26, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
+    // Calibré sur les tarifs réels du marché français du nettoyage (2024-2025) :
+    // ~3 à 6 €/m² pour une prestation ponctuelle standard, un peu plus pour du
+    // fin de bail / post-travaux, avec un forfait minimum d'intervention.
+    price: { base: 70, unitRate: 3, distRate: 1.5, workerRate: 22, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
     workers: amount => amount < 60 ? rand(1, 2) : amount < 180 ? rand(2, 3) : rand(3, 4),
-    duration: (amount, dist) => Math.max(2, Math.round(amount / 25 + dist / 40)),
+    duration: (amount, dist, workers) => Math.max(2, Math.round((amount / 25 + dist * 0.05) / workers)),
     categorize: categorizeItemNettoyage,
     categoryOrder: ['Sols', 'Sanitaires', 'Vitres', 'Cuisine', 'Autres prestations'],
     equipment: () => 'Monobrosse, aspirateur professionnel, chariot de ménage, produits adaptés aux surfaces à traiter',
@@ -1198,7 +1206,7 @@ async function generer() {
 
   // Le prix tient compte de la difficulté d'accès à l'arrivée (portage le plus contraignant)
   const workers = sector.workers(amount);
-  const duration = sector.duration(amount, dist);
+  const duration = sector.duration(amount, dist, workers);
   const price = computePrice(sector, amount, dist, workers, duration, arriveeFloor, arriveeElevator, urgent, weekend);
 
   const clientName = type === 'B2B' ? generateCompanyName(cat) : null;
