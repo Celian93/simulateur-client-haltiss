@@ -188,25 +188,6 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .location-info.pending { color: #64748b; font-style: italic; }
 .location-info.error { color: #fca5a5; background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.2); }
 
-.type-row { display: flex; gap: 8px; }
-.type-btn {
-  flex: 1;
-  padding: 9px 6px;
-  border: 1.5px solid rgba(255,255,255,0.1);
-  border-radius: 999px;
-  background: transparent;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: #94a3b8;
-}
-.type-btn.active {
-  background: linear-gradient(135deg, #10b981, #22d3ee);
-  color: #022c22;
-  border-color: transparent;
-}
-
 .btn-generate {
   padding: 13px;
   background: linear-gradient(135deg, #10b981, #22d3ee);
@@ -320,27 +301,15 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 0.79rem; background: rgba(252,211,77,0.12); color: #fcd34d; padding: 4px 9px; border-radius: 999px; border: 1px solid rgba(252,211,77,0.25); }
 
-.budget-bar { display: flex; gap: 8px; }
-.budget-item { flex: 1; text-align: center; padding: 11px 8px; border-radius: 16px; background: rgba(2,6,23,0.4); border: 1px solid rgba(255,255,255,0.08); }
-.budget-item.main { background: linear-gradient(135deg, #10b981, #22d3ee); border-color: transparent; }
-.budget-label { font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
-.budget-item.main .budget-label { color: rgba(2,6,23,0.65); }
-.budget-value { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-top: 2px; }
-.budget-item.main .budget-value { color: #022c22; font-size: 1.15rem; }
-.budget-suffix { font-size: 0.68rem; font-weight: 400; }
-
-.questions-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.questions-list li {
-  font-size: 0.85rem;
-  color: #cbd5e1;
-  padding: 7px 11px;
-  background: rgba(2,6,23,0.4);
-  border-radius: 12px;
-  display: flex;
-  gap: 9px;
-  align-items: flex-start;
+.budget-single {
+  text-align: center;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #10b981, #22d3ee);
 }
-.q-num { color: #6ee7b7; font-weight: 700; flex-shrink: 0; }
+.budget-single-label { font-size: 0.7rem; color: rgba(2,6,23,0.65); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.budget-single-value { font-size: 1.4rem; font-weight: 700; color: #022c22; margin-top: 4px; }
+.budget-suffix { font-size: 0.75rem; font-weight: 400; }
 
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
@@ -378,7 +347,6 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
 @media (max-width: 500px) {
   .items-grid { grid-template-columns: 1fr; }
-  .budget-bar { flex-direction: column; }
   .address-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -438,14 +406,6 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
       <div class="location-info" id="location-info"></div>
 
-      <div class="field">
-        <label>Type de client</label>
-        <div class="type-row">
-          <button class="type-btn active" data-type="B2B" onclick="selectType('B2B')">Professionnel</button>
-          <button class="type-btn" data-type="B2C" onclick="selectType('B2C')">Particulier</button>
-        </div>
-      </div>
-
       <button class="btn-generate" onclick="generer()">Générer un client</button>
     </div>
 
@@ -479,13 +439,6 @@ function showApp(user) {
 // ── DONNÉES ───────────────────────────────────────────────────────────────────
 const genHistory = [];
 
-let selectedType = 'B2B';
-function selectType(t) {
-  selectedType = t;
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.type === t);
-  });
-}
 
 const B2B_DEMENAGEMENT = [
   { cat:'Cabinet comptable', g:'m', size:[3,12], amountBase:[15,35], items:[
@@ -609,30 +562,14 @@ const B2C_DEMENAGEMENT = [
 ];
 
 const CONTRAINTES_DEMENAGEMENT = [
-  'Stationnement à réserver la veille','Accès livraison à confirmer avec le gardien',
+  'Accès livraison à confirmer avec le gardien',
   'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
-  'Ascenseur présent mais petit (90×110 cm)','Parking souterrain — hauteur limitée 2 m',
+  'Ascenseur présent mais petit (90×110 cm)',
   'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
   'Monte-meuble probablement nécessaire','Client disponible uniquement le matin',
   'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
   'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
   'Matériel informatique à sécuriser',
-];
-
-const Q_B2B_DEMENAGEMENT = [
-  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires de bureau ?',
-  'Proposez-vous le démontage et remontage du mobilier ?','Gérez-vous le matériel informatique fragile ?',
-  'Combien de personnes pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
-  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
-  'Proposez-vous la fourniture de cartons et emballage ?','Êtes-vous disponible dans ce délai ?',
-];
-
-const Q_B2C_DEMENAGEMENT = [
-  'Intervenez-vous dans ces deux communes ?','Disposez-vous d\'un monte-meuble si besoin ?',
-  'Proposez-vous le démontage et remontage des meubles ?','Pouvez-vous fournir les cartons et l\'emballage ?',
-  'Combien de déménageurs seriez-vous ?','La fourchette de prix vous semble-t-elle réaliste ?',
-  'Êtes-vous disponible dans ce délai ?','Quelle est votre politique en cas de casse ?',
-  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le samedi ?',
 ];
 
 const B2B_NETTOYAGE = [
@@ -733,26 +670,10 @@ const CONTRAINTES_NETTOYAGE = [
   'Intervention à réaliser hors présence du client','Clés à récupérer auprès du gardien',
   'Alarme à désactiver puis réactiver','Accès par badge à prévoir',
   'Produits allergènes à éviter','Prestataire devra fournir le matériel',
-  'Stationnement à réserver la veille','Code d\'entrée à obtenir',
+  'Code d\'entrée à obtenir',
   'Intervention souhaitée tôt le matin','Zones sensibles à signaler avant intervention',
   'Confidentialité des documents à respecter','Prestation à renouveler chaque semaine',
   'Accès livraison à confirmer avec le gardien','Client disponible uniquement en fin de journée',
-];
-
-const Q_B2B_NETTOYAGE = [
-  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires d\'ouverture ?',
-  'Fournissez-vous les produits et le matériel ?','Utilisez-vous des produits écologiques ou certifiés ?',
-  'Combien d\'agents pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
-  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
-  'Proposez-vous un contrat récurrent (hebdomadaire, mensuel) ?','Êtes-vous disponible dans ce délai ?',
-];
-
-const Q_B2C_NETTOYAGE = [
-  'Intervenez-vous dans cette commune ?','Fournissez-vous les produits et le matériel ?',
-  'Utilisez-vous des produits écologiques ?','Combien d\'agents seriez-vous ?',
-  'La fourchette de prix vous semble-t-elle réaliste ?','Êtes-vous disponible dans ce délai ?',
-  'Proposez-vous une prestation ponctuelle ou uniquement récurrente ?','Quelle est votre politique en cas d\'oubli ou de dommage ?',
-  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le week-end ?',
 ];
 
 const SECTORS = {
@@ -765,8 +686,6 @@ const SECTORS = {
     rolePlural: 'déménageurs',
     B2B: B2B_DEMENAGEMENT,
     B2C: B2C_DEMENAGEMENT,
-    questionsB2B: Q_B2B_DEMENAGEMENT,
-    questionsB2C: Q_B2C_DEMENAGEMENT,
     contraintes: CONTRAINTES_DEMENAGEMENT,
     price: { base: 350, unitRate: 28, distRate: 2.5, workerRate: 65, urgentMult: 1.25, weekendMult: 1.20, floor: 250 },
     workers: amount => amount < 20 ? 2 : amount < 45 ? rand(2, 3) : rand(3, 5),
@@ -787,8 +706,6 @@ const SECTORS = {
     rolePlural: 'agents de nettoyage',
     B2B: B2B_NETTOYAGE,
     B2C: B2C_NETTOYAGE,
-    questionsB2B: Q_B2B_NETTOYAGE,
-    questionsB2C: Q_B2C_NETTOYAGE,
     contraintes: CONTRAINTES_NETTOYAGE,
     price: { base: 90, unitRate: 3.2, distRate: 2, workerRate: 26, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
     workers: amount => amount < 60 ? rand(1, 2) : amount < 180 ? rand(2, 3) : rand(3, 4),
@@ -840,13 +757,6 @@ const QUARTIERS = [
   'Les Acacias','Le Moulin','Belle-Vue',
 ];
 
-const STATIONNEMENTS = [
-  'Place réservée devant l\'immeuble','Stationnement payant à proximité',
-  'Zone de stationnement autorisée pour camion','Accès poids lourd autorisé',
-  'Parking souterrain — hauteur limitée','Stationnement libre dans la rue',
-  'Autorisation de stationnement à demander en mairie',
-];
-
 const PRENOMS_M = ['Jean','Pierre','Nicolas','Julien','Thomas','Laurent','Antoine','Vincent'];
 const PRENOMS_F = ['Marie','Sophie','Camille','Claire','Émilie','Nathalie','Sarah','Aurélie'];
 
@@ -889,6 +799,21 @@ function generateClientName() {
   const civilite = isM ? 'M.' : 'Mme';
   const prenom = pick(isM ? PRENOMS_M : PRENOMS_F);
   return `${civilite} ${prenom} ${pick(NOMS)}`;
+}
+
+// Distance à vol d'oiseau entre deux points, corrigée d'un facteur route (~1.3
+// en moyenne en France) pour approcher une distance de trajet réelle et gratuite.
+function realDistanceKm(coordsA, coordsB) {
+  if (!coordsA || !coordsB) return null;
+  const R = 6371;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(coordsB.lat - coordsA.lat);
+  const dLon = toRad(coordsB.lon - coordsA.lon);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(coordsA.lat)) * Math.cos(toRad(coordsB.lat)) * Math.sin(dLon / 2) ** 2;
+  const straight = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const road = Math.max(straight * 1.3, 1);
+  return Math.round(road * 10) / 10;
 }
 
 function fakePostalCode(depCode) {
@@ -966,16 +891,18 @@ function getZones(dept, ville) {
   return ZONES['13'];
 }
 
+// Estime le budget maximum réaliste que le client est prêt à mettre pour cette
+// prestation précise : ni sous-évalué (le prestataire doit être payé à sa juste
+// valeur), ni surévalué (ça reste un tarif de marché plausible pour ce type de mission).
 function computePrice(sector, amount, dist, workers, duration, floor, elevator, urgent, weekend) {
   const p = sector.price;
   let base = p.base + amount * p.unitRate + dist * p.distRate + workers * duration * p.workerRate;
   if (!elevator && floor > 0) base += floor * 30;
   if (urgent) base *= p.urgentMult;
   if (weekend) base *= p.weekendMult;
-  base *= (1 + Math.random() * 0.2);
+  base *= (0.9 + Math.random() * 0.3); // ±variance réaliste selon le prestataire/l'état du bien
   base = Math.max(base, p.floor);
-  const target = Math.round(base / 50) * 50;
-  return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
+  return Math.round(base / 10) * 10;
 }
 
 // ── LOCALISATION (code postal → commune / département / région / pays) ────────
@@ -1039,20 +966,25 @@ async function resolveCodePostal(cp) {
     const c = pick(data);
     const departementCode = c.codeDepartement;
 
-    // Récupère de vraies communes du département pour générer des zones cohérentes
+    // Récupère de vraies communes du département (+ coordonnées) pour générer des
+    // zones cohérentes et calculer des distances réelles entre elles.
     let zones = [];
+    let zoneCoords = {};
     try {
-      const zonesRes = await fetch(`https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population&format=json`);
+      const zonesRes = await fetch(`https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population,centre&format=json`);
       const communes = await zonesRes.json();
       if (Array.isArray(communes) && communes.length) {
         const withPop = communes.filter(x => x.population);
         // Filet de sécurité : si trop peu de communes ont une population renseignée
         // (petits départements/collectivités), on repart de la liste complète.
         const base = withPop.length >= 2 ? withPop : communes;
-        zones = base
-          .sort((a, b) => (b.population || 0) - (a.population || 0))
-          .slice(0, 15)
-          .map(x => x.nom);
+        const top = base.sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 15);
+        zones = top.map(x => x.nom);
+        top.forEach(x => {
+          if (x.centre && Array.isArray(x.centre.coordinates)) {
+            zoneCoords[x.nom] = { lon: x.centre.coordinates[0], lat: x.centre.coordinates[1] };
+          }
+        });
         // Ultime filet : la commune elle-même si l'API n'a rien retourné d'exploitable.
         if (!zones.length) zones = [c.nom];
       } else {
@@ -1069,6 +1001,7 @@ async function resolveCodePostal(cp) {
       regionNom: c.region?.nom || '',
       pays: 'France',
       zones,
+      zoneCoords,
     };
     resolvedFor = cp;
     renderLocationInfo('ok', resolvedLocation);
@@ -1093,7 +1026,8 @@ async function generer() {
     ? resolvedLocation.zones
     : getZones(deptCode, ville);
 
-  let type = selectedType;
+  // 70% professionnel / 30% particulier, comme en réalité sur le réseau Haltiss
+  let type = Math.random() < 0.7 ? 'B2B' : 'B2C';
   let profile, cat, depart, arrivee;
 
   for (let t = 0; t < 8; t++) {
@@ -1118,7 +1052,12 @@ async function generer() {
       }
     }
     amount = rand(...profile.amountBase);
-    if (size) amount = Math.round(amount * size / 8);
+    // La taille (collaborateurs/postes/chambres...) module l'amountBase autour de la
+    // moyenne de sa propre plage, pour rester cohérent quelle que soit l'échelle de la catégorie.
+    if (size) {
+      const sizeMid = (profile.size[0] + profile.size[1]) / 2;
+      amount = Math.round(amount * size / sizeMid);
+    }
     constraints = pickN(sector.contraintes, rand(2, 4));
   } else {
     for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
@@ -1127,20 +1066,27 @@ async function generer() {
   }
 
   items = items.filter(i => i.q > 0);
-  const delai = pick(DELAIS);
-  const urgent = delai.includes('48h');
+
+  // Urgence indépendante du délai affiché (10% des demandes), pilote le badge et le prix
+  const urgent = Math.random() < 0.1;
+  const delai = urgent
+    ? 'sous 48 heures — intervention urgente'
+    : 'dans les 15 prochains jours, à convenir avec le client et le prestataire';
   // Disponibilité client : 90% sous 24h, 10% sous 48h
   const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
   const weekend = Math.random() > 0.78;
-  const dist = rand(3, 35);
+
+  // Distance réelle (à vol d'oiseau + correction routière) si les coordonnées des
+  // communes sont disponibles, sinon estimation raisonnable en repli.
+  const coords = resolvedLocation && resolvedLocation.zoneCoords;
+  const realDist = coords ? realDistanceKm(coords[depart], coords[arrivee]) : null;
+  const dist = realDist !== null ? realDist : rand(3, 35);
 
   // Adresses de départ et d'arrivée (distinctes l'une de l'autre)
   const departFloor = rand(0, 5);
   const arriveeFloor = rand(0, 5);
   const departElevator = Math.random() > 0.4;
   const arriveeElevator = Math.random() > 0.4;
-  const departParking = pick(STATIONNEMENTS);
-  const arriveeParking = pick(STATIONNEMENTS.filter(s => s !== departParking)) || STATIONNEMENTS[0];
   const departQuartier = pick(QUARTIERS);
   const arriveeQuartier = pick(QUARTIERS.filter(q => q !== departQuartier)) || QUARTIERS[0];
   const departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
@@ -1150,7 +1096,6 @@ async function generer() {
   const workers = sector.workers(amount);
   const duration = sector.duration(amount, dist);
   const price = computePrice(sector, amount, dist, workers, duration, arriveeFloor, arriveeElevator, urgent, weekend);
-  const questions = pickN(type === 'B2B' ? sector.questionsB2B : sector.questionsB2C, 5);
 
   const clientName = type === 'B2B' ? generateCompanyName(cat) : generateClientName();
   const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
@@ -1158,10 +1103,10 @@ async function generer() {
 
   afficher({
     sector, type, cat, depart, arrivee, dist, items, amount, size,
-    constraints: derivedConstraints, delai, dispo, workers, duration, price, questions,
+    constraints: derivedConstraints, delai, dispo, workers, duration, price,
     urgent, weekend, clientName,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
-    departParking, arriveeParking, departQuartier, arriveeQuartier, departCp, arriveeCp,
+    departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
   });
 }
@@ -1190,8 +1135,8 @@ function afficher(d) {
         `<li><b>Profil :</b> ${d.cat}</li>`,
       ];
 
-  // Section 2 : adresses et informations logistiques
-  const addressBlock = (label, ville, cp, quartier, floor, elevator, parking) => `
+  // Section 2 : adresses et informations logistiques (stationnement toujours disponible)
+  const addressBlock = (label, ville, cp, quartier, floor, elevator) => `
     <div class="address-block">
       <div class="address-label">${label}</div>
       <ul class="kv-list">
@@ -1199,7 +1144,7 @@ function afficher(d) {
         <li><b>Quartier :</b> ${quartier}</li>
         <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : `${floor}ᵉ étage`}</li>
         <li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>
-        <li><b>Stationnement :</b> ${parking}</li>
+        <li><b>Stationnement :</b> Disponible</li>
       </ul>
     </div>`;
 
@@ -1232,11 +1177,11 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">2. Informations sur ${d.sector.addressNoun}</div>
         <div class="address-grid">
-          ${addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator, d.departParking)}
-          ${addressBlock('Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator, d.arriveeParking)}
+          ${addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator)}
+          ${addressBlock('Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator)}
         </div>
         <ul class="kv-list">
-          <li><b>Distance entre les deux sites :</b> ~${d.dist} km</li>
+          <li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
         </ul>
@@ -1269,16 +1214,10 @@ function afficher(d) {
 
       <div class="section">
         <div class="section-title">7. Budget du client</div>
-        <div class="budget-bar">
-          <div class="budget-item"><div class="budget-label">Minimum</div><div class="budget-value">${d.price.min.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
-          <div class="budget-item main"><div class="budget-label">Cible</div><div class="budget-value">${d.price.target.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
-          <div class="budget-item"><div class="budget-label">Maximum</div><div class="budget-value">${d.price.max.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+        <div class="budget-single">
+          <div class="budget-single-label">Budget maximum que le client souhaite mettre</div>
+          <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div>
         </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Questions à poser</div>
-        <ul class="questions-list">${d.questions.map((q,i) => `<li><span class="q-num">${i+1}.</span>${q}</li>`).join('')}</ul>
       </div>
     </div>
     <div class="actions">
