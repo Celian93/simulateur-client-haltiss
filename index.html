@@ -385,7 +385,10 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
   outline: none;
 }
 .reserve-form input:focus { border-color: #10b981; }
+.reserve-offer-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .btn-reserve {
+  flex: 1;
+  min-width: 160px;
   padding: 11px 22px;
   border: none;
   border-radius: 999px;
@@ -397,6 +400,7 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
   white-space: nowrap;
   transition: opacity 0.15s;
 }
+.btn-reserve.btn-offer-participation { background: linear-gradient(135deg, #fcd34d, #f59e0b); }
 .btn-reserve:hover { opacity: 0.92; }
 .btn-reserve:disabled { opacity: 0.7; cursor: default; }
 .reserve-status { font-size: 0.8rem; margin-top: 10px; color: #94a3b8; }
@@ -1320,10 +1324,13 @@ function afficher(d) {
 
       <div class="section reserve-block">
         <div class="reserve-title">⏱️ Réserver ce client sous 24h</div>
-        <p class="reserve-desc">Renseignez votre e-mail : ce client vous sera réservé sous 24h, sous réserve de prise en charge de votre part.</p>
+        <p class="reserve-desc">Renseignez votre e-mail et choisissez une offre : ce client vous sera réservé sous 24h, sous réserve de prise en charge de votre part. La brochure correspondante vous sera envoyée avec la fiche client.</p>
         <div class="reserve-form">
           <input type="email" id="prestataire-email" placeholder="votre-email@exemple.fr" />
-          <button class="btn-reserve" onclick="reserverClient()">Réserver le client</button>
+        </div>
+        <div class="reserve-offer-buttons">
+          <button class="btn-reserve" data-offer="free" onclick="reserverClient('free')">Offre Free</button>
+          <button class="btn-reserve btn-offer-participation" data-offer="participation" onclick="reserverClient('participation')">Offre Participation</button>
         </div>
         <p class="reserve-status" id="reserve-status"></p>
       </div>
@@ -1446,10 +1453,13 @@ async function creerAgent() {
   }
 }
 
-async function reserverClient() {
+const OFFER_LABELS = { free: 'Offre Free', participation: 'Offre Participation' };
+
+async function reserverClient(offer) {
   const emailInput = document.getElementById('prestataire-email');
   const statusEl = document.getElementById('reserve-status');
-  const btn = document.querySelector('.btn-reserve');
+  const buttons = document.querySelectorAll('.btn-reserve');
+  const btn = document.querySelector(`.btn-reserve[data-offer="${offer}"]`);
   const email = emailInput.value.trim();
 
   statusEl.className = 'reserve-status';
@@ -1460,7 +1470,7 @@ async function reserverClient() {
   }
   if (!lastFiche) return;
 
-  btn.disabled = true;
+  buttons.forEach(b => b.disabled = true);
   emailInput.disabled = true;
   btn.textContent = 'Envoi en cours…';
   statusEl.textContent = '';
@@ -1471,6 +1481,7 @@ async function reserverClient() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
+        offer,
         sector: lastFiche.sector.key,
         cat: lastFiche.cat,
         depart: lastFiche.depart,
@@ -1485,13 +1496,13 @@ async function reserverClient() {
     });
     if (!res.ok) throw new Error('request failed');
 
-    btn.textContent = '✓ Client réservé';
-    statusEl.textContent = 'Un e-mail de confirmation vous a été envoyé. Ce client vous est réservé sous 24h, sous réserve de prise en charge.';
+    btn.textContent = `✓ ${OFFER_LABELS[offer]} envoyée`;
+    statusEl.textContent = 'Un e-mail avec la brochure et la fiche client vous a été envoyé. Ce client vous est réservé sous 24h, sous réserve de prise en charge.';
     statusEl.classList.add('success');
   } catch (e) {
-    btn.disabled = false;
+    buttons.forEach(b => b.disabled = false);
     emailInput.disabled = false;
-    btn.textContent = 'Réserver le client';
+    btn.textContent = OFFER_LABELS[offer];
     statusEl.textContent = 'Impossible d\'envoyer la demande pour le moment. Réessayez plus tard.';
     statusEl.classList.add('error');
   }

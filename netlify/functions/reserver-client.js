@@ -5,6 +5,22 @@
 // généré dans Zoho Mail, pas le mot de passe principal du compte).
 
 const nodemailer = require('nodemailer');
+const { OFFRE_FREE_HTML_B64, OFFRE_PARTICIPATION_HTML_B64 } = require('./brochures');
+
+const OFFERS = {
+  free: {
+    label: 'Offre Free',
+    filename: 'Haltiss-Offre-Free.html',
+    contentB64: OFFRE_FREE_HTML_B64,
+    mention: 'Vous trouverez ci-joint le détail de notre Offre Free (premier mois offert).',
+  },
+  participation: {
+    label: 'Offre Participation',
+    filename: 'Haltiss-Offre-Participation.html',
+    contentB64: OFFRE_PARTICIPATION_HTML_B64,
+    mention: 'Vous trouverez ci-joint le détail de notre Offre Participation.',
+  },
+};
 
 const TEMPLATES_DEMENAGEMENT = [
   {
@@ -104,9 +120,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai } = payload;
+  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai, offer } = payload;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Email invalide' }) };
+  }
+  const selectedOffer = OFFERS[offer];
+  if (!selectedOffer) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Offre invalide (attendu "free" ou "participation")' }) };
   }
   if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD) {
     return { statusCode: 500, body: JSON.stringify({ error: 'ZOHO_EMAIL / ZOHO_APP_PASSWORD manquants' }) };
@@ -139,8 +159,16 @@ exports.handler = async (event) => {
     await transporter.sendMail({
       from: `Haltiss <${process.env.ZOHO_EMAIL}>`,
       to: email,
-      subject: tpl.subject,
-      text: tpl.body(context),
+      subject: `${tpl.subject} — ${selectedOffer.label}`,
+      text: `${tpl.body(context)}\n\n${selectedOffer.mention}`,
+      attachments: [
+        {
+          filename: selectedOffer.filename,
+          content: selectedOffer.contentB64,
+          encoding: 'base64',
+          contentType: 'text/html',
+        },
+      ],
     });
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (e) {
