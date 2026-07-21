@@ -1,0 +1,7 @@
+{
+  "name": "simulateur-client-haltiss",
+  "private": true,
+  "dependencies": {
+    "nodemailer": "^6.9.14"
+  }
+}

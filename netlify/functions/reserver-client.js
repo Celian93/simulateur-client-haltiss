@@ -1,6 +1,10 @@
 // Envoie au prestataire un e-mail de réservation, avec un contenu varié et
-// adapté à son secteur d'activité (déménagement ou nettoyage). Nécessite la
-// variable d'environnement RESEND_API_KEY (compte gratuit sur resend.com).
+// adapté à son secteur d'activité (déménagement ou nettoyage), depuis la boîte
+// Zoho Mail du réseau Haltiss (support@haltiss.com). Nécessite les variables
+// d'environnement ZOHO_EMAIL et ZOHO_APP_PASSWORD (mot de passe d'application
+// généré dans Zoho Mail, pas le mot de passe principal du compte).
+
+const nodemailer = require('nodemailer');
 
 const TEMPLATES_DEMENAGEMENT = [
   {
@@ -8,6 +12,8 @@ const TEMPLATES_DEMENAGEMENT = [
     body: (c) => `Bonjour,
 
 Un nouveau client (${c.cat}) recherche un déménageur entre ${c.depart} et ${c.arrivee} (environ ${c.dist} km).
+
+Prestation : ${c.amount} ${c.unit}. Intervention souhaitée ${c.delai}.
 
 Budget estimé par le client : jusqu'à ${c.price} € TTC.
 
@@ -19,8 +25,9 @@ L'équipe Haltiss`,
     subject: 'Nouvelle demande de déménagement dans votre secteur',
     body: (c) => `Bonjour,
 
-Une opportunité de mission vient d'être identifiée pour vous : ${c.cat}, trajet ${c.depart} → ${c.arrivee} (${c.dist} km).
+Une opportunité de mission vient d'être identifiée pour vous : ${c.cat}, trajet ${c.depart} → ${c.arrivee} (${c.dist} km, ${c.amount} ${c.unit}).
 
+Délai souhaité par le client : ${c.delai}.
 Le client est prêt à mettre jusqu'à ${c.price} € TTC pour cette prestation.
 
 Vous disposez de 24h pour prendre en charge ce client, sous réserve de disponibilité de votre part.
@@ -32,11 +39,11 @@ L'équipe Haltiss`,
     subject: 'Mise en relation déménagement — à traiter sous 24h',
     body: (c) => `Bonjour,
 
-Nous avons une mise en relation à vous proposer : un client (${c.cat}) souhaite déménager de ${c.depart} vers ${c.arrivee} (~${c.dist} km).
+Nous avons une mise en relation à vous proposer : un client (${c.cat}) souhaite déménager de ${c.depart} vers ${c.arrivee} (~${c.dist} km, ${c.amount} ${c.unit}), ${c.delai}.
 
 Budget client indicatif : jusqu'à ${c.price} € TTC.
 
-Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Connectez-vous ou répondez à cet e-mail pour confirmer.
+Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Répondez à cet e-mail pour confirmer.
 
 L'équipe Haltiss`,
   },
@@ -49,6 +56,8 @@ const TEMPLATES_NETTOYAGE = [
 
 Un nouveau client (${c.cat}) recherche un prestataire de nettoyage entre ${c.depart} et ${c.arrivee} (environ ${c.dist} km).
 
+Prestation : ${c.amount} ${c.unit}. Intervention souhaitée ${c.delai}.
+
 Budget estimé par le client : jusqu'à ${c.price} € TTC.
 
 Ce client vous est réservé sous 24h, sous réserve de votre prise en charge. Merci de confirmer votre disponibilité rapidement.
@@ -59,8 +68,9 @@ L'équipe Haltiss`,
     subject: 'Nouvelle demande de prestation de nettoyage',
     body: (c) => `Bonjour,
 
-Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé entre ${c.depart} et ${c.arrivee} (${c.dist} km).
+Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé entre ${c.depart} et ${c.arrivee} (${c.dist} km, ${c.amount} ${c.unit}).
 
+Délai souhaité par le client : ${c.delai}.
 Le client est prêt à mettre jusqu'à ${c.price} € TTC pour cette prestation.
 
 Vous disposez de 24h pour prendre en charge ce client, sous réserve de disponibilité de votre part.
@@ -72,11 +82,11 @@ L'équipe Haltiss`,
     subject: 'Mise en relation nettoyage — à traiter sous 24h',
     body: (c) => `Bonjour,
 
-Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (déplacement depuis ${c.depart}, ~${c.dist} km).
+Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (déplacement depuis ${c.depart}, ~${c.dist} km, ${c.amount} ${c.unit}), ${c.delai}.
 
 Budget client indicatif : jusqu'à ${c.price} € TTC.
 
-Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Connectez-vous ou répondez à cet e-mail pour confirmer.
+Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Répondez à cet e-mail pour confirmer.
 
 L'équipe Haltiss`,
   },
@@ -94,12 +104,12 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { email, sector, cat, depart, arrivee, dist, price } = payload;
+  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai } = payload;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Email invalide' }) };
   }
-  if (!process.env.RESEND_API_KEY) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'RESEND_API_KEY manquante' }) };
+  if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'ZOHO_EMAIL / ZOHO_APP_PASSWORD manquants' }) };
   }
 
   const templates = sector === 'nettoyage' ? TEMPLATES_NETTOYAGE : TEMPLATES_DEMENAGEMENT;
@@ -109,31 +119,31 @@ exports.handler = async (event) => {
     depart: depart || '',
     arrivee: arrivee || '',
     dist: dist ?? '',
+    amount: amount ?? '',
+    unit: unit || '',
+    delai: delai || 'à convenir',
     price: Number(price || 0).toLocaleString('fr-FR'),
   };
 
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.zoho.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.ZOHO_EMAIL,
+      pass: process.env.ZOHO_APP_PASSWORD,
+    },
+  });
+
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM || 'Haltiss <onboarding@resend.dev>',
-        to: [email],
-        subject: tpl.subject,
-        text: tpl.body(context),
-      }),
+    await transporter.sendMail({
+      from: `Haltiss <${process.env.ZOHO_EMAIL}>`,
+      to: email,
+      subject: tpl.subject,
+      text: tpl.body(context),
     });
-
-    if (!resp.ok) {
-      const errText = await resp.text();
-      return { statusCode: 502, body: JSON.stringify({ error: errText }) };
-    }
-
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ error: e.message }) };
+    return { statusCode: 502, body: JSON.stringify({ error: e.message }) };
   }
 };
