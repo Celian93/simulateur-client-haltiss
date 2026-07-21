@@ -164,10 +164,15 @@ input, select {
   outline: none;
   transition: border-color 0.15s;
   background: rgba(2,6,23,0.5);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 select { color-scheme: dark; cursor: pointer; }
 input::placeholder { color: #475569; }
 input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
+input[readonly] { color: #94a3b8; background: rgba(2,6,23,0.3); cursor: default; }
+input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
 .location-info {
   display: none;
@@ -361,6 +366,14 @@ input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75)
         <div class="field">
           <label>Code postal</label>
           <input type="text" id="cp" inputmode="numeric" maxlength="5" placeholder="Ex : 13001" />
+        </div>
+        <div class="field">
+          <label>Département</label>
+          <input type="text" id="departement" placeholder="Auto" readonly />
+        </div>
+        <div class="field">
+          <label>Région</label>
+          <input type="text" id="region" placeholder="Auto" readonly />
         </div>
         <div class="field">
           <label>Ville du prestataire</label>
@@ -790,19 +803,31 @@ function debounce(fn, delay) {
 
 function renderLocationInfo(state, data) {
   const el = document.getElementById('location-info');
+  const deptInput = document.getElementById('departement');
+  const regionInput = document.getElementById('region');
   el.classList.remove('pending', 'error');
   if (state === 'pending') {
     el.classList.add('show', 'pending');
     el.textContent = 'Recherche de la commune…';
+    deptInput.value = '';
+    regionInput.value = '';
   } else if (state === 'error') {
     el.classList.add('show', 'error');
     el.textContent = 'Code postal introuvable — vérifiez la saisie.';
+    deptInput.value = '';
+    regionInput.value = '';
   } else if (state === 'ok') {
     el.classList.add('show');
-    el.innerHTML = `<b>${data.commune}</b> · ${data.departementNom} (${data.departementCode}) · ${data.regionNom} · ${data.pays}`;
+    el.innerHTML = `<b>${data.commune}</b> · ${data.pays}`;
+    deptInput.value = `${data.departementNom} (${data.departementCode})`;
+    deptInput.title = deptInput.value;
+    regionInput.value = data.regionNom;
+    regionInput.title = data.regionNom;
   } else {
     el.classList.remove('show');
     el.innerHTML = '';
+    deptInput.value = '';
+    regionInput.value = '';
   }
 }
 
