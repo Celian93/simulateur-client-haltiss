@@ -840,6 +840,7 @@ function renderLocationInfo(state, data) {
   const el = document.getElementById('location-info');
   const deptInput = document.getElementById('departement');
   const regionInput = document.getElementById('region');
+  const villeInput = document.getElementById('ville');
   el.classList.remove('pending', 'error');
   if (state === 'pending') {
     el.classList.add('show', 'pending');
@@ -852,8 +853,9 @@ function renderLocationInfo(state, data) {
     deptInput.value = '';
     regionInput.value = '';
   } else if (state === 'ok') {
-    el.classList.add('show');
-    el.innerHTML = `<b>${data.commune}</b> · ${data.pays}`;
+    el.classList.remove('show');
+    el.innerHTML = '';
+    villeInput.value = data.commune;
     deptInput.value = `${data.departementNom} (${data.departementCode})`;
     deptInput.title = deptInput.value;
     regionInput.value = data.regionNom;
