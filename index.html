@@ -310,6 +310,53 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .budget-single-label { font-size: 0.7rem; color: rgba(2,6,23,0.65); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .budget-single-value { font-size: 1.4rem; font-weight: 700; color: #022c22; margin-top: 4px; }
 .budget-suffix { font-size: 0.75rem; font-weight: 400; }
+.price-note { font-size: 0.72rem; color: #64748b; font-style: italic; margin-top: 8px; text-align: center; }
+
+.reserve-block {
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 16px;
+  padding: 16px;
+}
+.reserve-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+.reserve-desc { font-size: 0.82rem; color: #94a3b8; line-height: 1.5; margin-bottom: 12px; }
+.reserve-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.reserve-form input {
+  flex: 1;
+  min-width: 180px;
+  padding: 11px 13px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+  background: rgba(2,6,23,0.5);
+  outline: none;
+}
+.reserve-form input:focus { border-color: #10b981; }
+.btn-reserve {
+  padding: 11px 22px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #10b981, #22d3ee);
+  color: #022c22;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.btn-reserve:hover { opacity: 0.92; }
+.btn-reserve:disabled { opacity: 0.7; cursor: default; }
+.reserve-status { font-size: 0.8rem; margin-top: 10px; color: #94a3b8; }
+.reserve-status.success { color: #6ee7b7; }
+.reserve-status.error { color: #fca5a5; }
+
+.stats-block { background: rgba(2,6,23,0.3); border-radius: 16px; padding: 16px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-item { text-align: center; padding: 10px 6px; border-radius: 12px; background: rgba(2,6,23,0.4); border: 1px solid rgba(255,255,255,0.08); }
+.stat-value { font-size: 1.3rem; font-weight: 700; color: #6ee7b7; }
+.stat-label { font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+.stats-disclaimer { font-size: 0.72rem; color: #64748b; font-style: italic; line-height: 1.5; }
 
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
@@ -406,7 +453,7 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
       <div class="location-info" id="location-info"></div>
 
-      <button class="btn-generate" onclick="generer()">Générer un client</button>
+      <button class="btn-generate" onclick="generer()">Recherche de mise en relation client</button>
     </div>
 
     <div class="result" id="result"></div>
@@ -438,6 +485,7 @@ function showApp(user) {
 
 // ── DONNÉES ───────────────────────────────────────────────────────────────────
 const genHistory = [];
+let lastFiche = null;
 
 
 const B2B_DEMENAGEMENT = [
@@ -678,6 +726,7 @@ const CONTRAINTES_NETTOYAGE = [
 
 const SECTORS = {
   demenagement: {
+    key: 'demenagement',
     label: 'Déménagement',
     unit: 'm³',
     amountLabel: 'Volume estimé',
@@ -696,8 +745,10 @@ const SECTORS = {
     equipmentLabel: 'Camion recommandé',
     prestationsExtra: items => prestationsDemenagement(items),
     addressNoun: 'le déménagement',
+    monthlyVolume: () => rand(12, 30),
   },
   nettoyage: {
+    key: 'nettoyage',
     label: 'Nettoyage',
     unit: 'm²',
     amountLabel: 'Surface estimée',
@@ -716,6 +767,7 @@ const SECTORS = {
     equipmentLabel: 'Matériel recommandé',
     prestationsExtra: () => prestationsNettoyageComplement(),
     addressNoun: 'la prestation',
+    monthlyVolume: () => rand(15, 40),
   },
 };
 
@@ -1101,6 +1153,12 @@ async function generer() {
   const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
   const prestationsExtra = sector.prestationsExtra(items);
 
+  // Estimation statistique (indicative) du volume de clients proposés chaque mois,
+  // avec la même répartition 70% pro / 30% particulier que le tirage réel.
+  const monthlyTotal = sector.monthlyVolume();
+  const monthlyPro = Math.round(monthlyTotal * 0.7);
+  const monthlyPart = monthlyTotal - monthlyPro;
+
   afficher({
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, delai, dispo, workers, duration, price,
@@ -1108,11 +1166,11 @@ async function generer() {
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
+    monthlyTotal, monthlyPro, monthlyPart,
   });
 }
 
 function afficher(d) {
-  const pl = d.type === 'B2B' ? 'HT' : 'TTC';
   const role = d.workers === 1 ? d.sector.roleSingular : d.sector.rolePlural;
   const flags = [
     d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
@@ -1216,8 +1274,29 @@ function afficher(d) {
         <div class="section-title">7. Budget du client</div>
         <div class="budget-single">
           <div class="budget-single-label">Budget maximum que le client souhaite mettre</div>
-          <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div>
+          <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ TTC</span></div>
         </div>
+        <p class="price-note">Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.</p>
+      </div>
+
+      <div class="section reserve-block">
+        <div class="reserve-title">⏱️ Réserver ce client sous 24h</div>
+        <p class="reserve-desc">Renseignez votre e-mail : ce client vous sera réservé sous 24h, sous réserve de prise en charge de votre part.</p>
+        <div class="reserve-form">
+          <input type="email" id="prestataire-email" placeholder="votre-email@exemple.fr" />
+          <button class="btn-reserve" onclick="reserverClient()">Réserver le client</button>
+        </div>
+        <p class="reserve-status" id="reserve-status"></p>
+      </div>
+
+      <div class="section stats-block">
+        <div class="section-title">Estimation de clients dans votre secteur</div>
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-value">${d.monthlyTotal}</div><div class="stat-label">Clients / mois</div></div>
+          <div class="stat-item"><div class="stat-value">${d.monthlyPro}</div><div class="stat-label">Professionnels</div></div>
+          <div class="stat-item"><div class="stat-value">${d.monthlyPart}</div><div class="stat-label">Particuliers</div></div>
+        </div>
+        <p class="stats-disclaimer">Ces garanties ne sont pas à confondre avec les statistiques ci-dessus : il s'agit d'une estimation statistique, pas d'une garantie contractuelle du nombre de clients proposés.</p>
       </div>
     </div>
     <div class="actions">
@@ -1225,6 +1304,7 @@ function afficher(d) {
       <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
     </div>
   `;
+  lastFiche = d;
   document.getElementById('result').className = 'result show';
   document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
@@ -1236,6 +1316,54 @@ function copier() {
     btn.textContent = '✓ Copié';
     setTimeout(() => btn.textContent = 'Copier la fiche', 2000);
   });
+}
+
+async function reserverClient() {
+  const emailInput = document.getElementById('prestataire-email');
+  const statusEl = document.getElementById('reserve-status');
+  const btn = document.querySelector('.btn-reserve');
+  const email = emailInput.value.trim();
+
+  statusEl.className = 'reserve-status';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    statusEl.textContent = 'Merci de renseigner une adresse e-mail valide.';
+    statusEl.classList.add('error');
+    return;
+  }
+  if (!lastFiche) return;
+
+  btn.disabled = true;
+  emailInput.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+  statusEl.textContent = '';
+
+  try {
+    const res = await fetch('/.netlify/functions/reserver-client', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        sector: lastFiche.sector.key,
+        cat: lastFiche.cat,
+        depart: lastFiche.depart,
+        arrivee: lastFiche.arrivee,
+        dist: lastFiche.dist,
+        price: lastFiche.price,
+        type: lastFiche.type,
+      }),
+    });
+    if (!res.ok) throw new Error('request failed');
+
+    btn.textContent = '✓ Client réservé';
+    statusEl.textContent = 'Un e-mail de confirmation vous a été envoyé. Ce client vous est réservé sous 24h, sous réserve de prise en charge.';
+    statusEl.classList.add('success');
+  } catch (e) {
+    btn.disabled = false;
+    emailInput.disabled = false;
+    btn.textContent = 'Réserver le client';
+    statusEl.textContent = 'Impossible d\'envoyer la demande pour le moment. Réessayez plus tard.';
+    statusEl.classList.add('error');
+  }
 }
 
 document.addEventListener('keydown', e => {
