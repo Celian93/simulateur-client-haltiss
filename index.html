@@ -425,22 +425,8 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
-.flag.noelev { background: rgba(196,132,252,0.14); color: #c4b4ff; border: 1px solid rgba(196,132,252,0.3); }
 
 .actions { display: flex; gap: 8px; margin-top: 18px; }
-.btn-copy {
-  flex: 1;
-  padding: 10px;
-  border: 1.5px solid rgba(255,255,255,0.12);
-  border-radius: 999px;
-  background: transparent;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: #6ee7b7;
-  transition: all 0.15s;
-}
-.btn-copy:hover { background: rgba(16,185,129,0.1); border-color: #10b981; }
 .btn-new {
   flex: 1;
   padding: 10px;
@@ -633,7 +619,7 @@ const B2B_DEMENAGEMENT = [
 ];
 
 const B2C_DEMENAGEMENT = [
-  { cat:'Studio étudiant', amount:[8,18], extra:['Pas d\'ascenseur','Accès étroit'], items:[
+  { cat:'Studio étudiant', amount:[8,18], extra:['Accès étroit'], items:[
     {n:'Lit 1 personne',q:[1,1],f:false},{n:'Bureau',q:[1,1],f:false},
     {n:'Armoire',q:[1,1],f:false},{n:'Cartons affaires',q:[5,15],f:false},
     {n:'Électroménager (micro-ondes…)',q:[1,1],f:true},
@@ -668,7 +654,7 @@ const B2C_DEMENAGEMENT = [
     {n:'Lit',q:[1,2],f:false},{n:'Armoire',q:[1,2],f:false},
     {n:'Canapé',q:[1,1],f:false},{n:'Cartons non triés',q:[10,25],f:false},
   ]},
-  { cat:'Appartement sans ascenseur', amount:[22,50], extra:['Pas d\'ascenseur','Escalier étroit'], items:[
+  { cat:'Appartement en étage', amount:[22,50], extra:['Escalier commun étroit'], items:[
     {n:'Lit double',q:[1,1],f:false},{n:'Armoire 3 portes',q:[1,2],f:false},
     {n:'Canapé d\'angle',q:[1,1],f:false},{n:'Réfrigérateur',q:[1,1],f:false},
     {n:'Lave-linge',q:[1,1],f:false},{n:'Cartons divers',q:[15,30],f:false},
@@ -689,7 +675,7 @@ const CONTRAINTES_DEMENAGEMENT = [
   'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
   'Ascenseur présent mais petit (90×110 cm)',
   'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
-  'Monte-meuble probablement nécessaire','Client disponible uniquement le matin',
+  'Monte-meuble probablement nécessaire',
   'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
   'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
   'Matériel informatique à sécuriser',
@@ -796,7 +782,7 @@ const CONTRAINTES_NETTOYAGE = [
   'Code d\'entrée à obtenir',
   'Intervention souhaitée tôt le matin','Zones sensibles à signaler avant intervention',
   'Confidentialité des documents à respecter','Prestation à renouveler chaque semaine',
-  'Accès livraison à confirmer avec le gardien','Client disponible uniquement en fin de journée',
+  'Accès livraison à confirmer avec le gardien',
 ];
 
 const SECTORS = {
@@ -898,32 +884,14 @@ const NOMS = [
   'Henry','Roussel','Perrin','Morin','Mathieu','Gauthier','Dumont','Marchand','Renard',
 ];
 
-const COMPANY_TEMPLATES = {
-  'Cabinet comptable': () => `Cabinet ${pick(NOMS)} & ${pick(NOMS)}`,
-  'Cabinet comptable / juridique': () => `Cabinet ${pick(NOMS)} & ${pick(NOMS)}`,
-  'Cabinet médical': () => `Cabinet médical Dr ${pick(NOMS)}`,
-  'Cabinet d\'avocats': () => `Cabinet ${pick(NOMS)} & Associés`,
-  'Agence immobilière': () => `Agence ${pick(NOMS)} Immobilier`,
-  'Agence de communication': () => `Studio ${pick(NOMS)}`,
-  'Entreprise informatique': () => `${pick(NOMS)} Technologies`,
-  'Commerce de détail': () => `${pick(NOMS)} & Fils`,
-  'Commerce / boutique': () => `Boutique ${pick(NOMS)}`,
-  'Restaurant': () => `Restaurant ${pick(NOMS)}`,
-  'Restaurant / cuisine professionnelle': () => `Restaurant ${pick(NOMS)}`,
-  'Étude notariale': () => `Étude ${pick(NOMS)} & ${pick(NOMS)}`,
-  'Organisme de formation': () => `${pick(NOMS)} Formation`,
-  'Établissement scolaire / formation': () => `${pick(NOMS)} Formation`,
-  'Pharmacie': () => `Pharmacie ${pick(NOMS)}`,
-  'Bureaux / open space': () => `${pick(NOMS)} & Associés`,
-  'Copropriété — parties communes': () => `Copropriété ${pick(NOMS)}`,
-  'Salle de sport': () => `${pick(NOMS)} Fitness`,
-  'Entrepôt / locaux industriels': () => `${pick(NOMS)} Logistique`,
-  'Résidence hôtelière / Airbnb': () => `Résidence ${pick(NOMS)}`,
-};
+const PRENOMS_M = ['Jean','Pierre','Nicolas','Julien','Thomas','Laurent','Antoine','Vincent'];
+const PRENOMS_F = ['Marie','Sophie','Camille','Claire','Émilie','Nathalie','Sarah','Aurélie'];
 
-function generateCompanyName(cat) {
-  const tpl = COMPANY_TEMPLATES[cat];
-  return tpl ? tpl() : `${pick(NOMS)} ${cat}`;
+function generateContactName() {
+  const isM = Math.random() > 0.5;
+  const civilite = isM ? 'M.' : 'Mme';
+  const prenom = pick(isM ? PRENOMS_M : PRENOMS_F);
+  return `${civilite} ${prenom} ${pick(NOMS)}`;
 }
 
 // Distance à vol d'oiseau entre deux points, corrigée d'un facteur route (~1.3
@@ -1019,10 +987,9 @@ function getZones(dept, ville) {
 // Estime le budget maximum réaliste que le client est prêt à mettre pour cette
 // prestation précise : ni sous-évalué (le prestataire doit être payé à sa juste
 // valeur), ni surévalué (ça reste un tarif de marché plausible pour ce type de mission).
-function computePrice(sector, amount, dist, workers, duration, floor, elevator, urgent, weekend) {
+function computePrice(sector, amount, dist, workers, duration, urgent, weekend) {
   const p = sector.price;
   let base = p.base + amount * p.unitRate + dist * p.distRate + workers * duration * p.workerRate;
-  if (!elevator && floor > 0) base += floor * 30;
   if (urgent) base *= p.urgentMult;
   if (weekend) base *= p.weekendMult;
   base *= (0.9 + Math.random() * 0.3); // ±variance réaliste selon le prestataire/l'état du bien
@@ -1210,8 +1177,8 @@ async function generer() {
   // Adresses de départ et d'arrivée (distinctes l'une de l'autre)
   const departFloor = rand(0, 5);
   const arriveeFloor = rand(0, 5);
-  const departElevator = Math.random() > 0.4;
-  const arriveeElevator = Math.random() > 0.4;
+  const departElevator = true;
+  const arriveeElevator = true;
   const departQuartier = pick(QUARTIERS);
   const arriveeQuartier = pick(QUARTIERS.filter(q => q !== departQuartier)) || QUARTIERS[0];
   const departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
@@ -1220,9 +1187,9 @@ async function generer() {
   // Le prix tient compte de la difficulté d'accès à l'arrivée (portage le plus contraignant)
   const workers = sector.workers(amount);
   const duration = sector.duration(amount, dist, workers);
-  const price = computePrice(sector, amount, dist, workers, duration, arriveeFloor, arriveeElevator, urgent, weekend);
+  const price = computePrice(sector, amount, dist, workers, duration, urgent, weekend);
 
-  const clientName = type === 'B2B' ? generateCompanyName(cat) : null;
+  const clientName = generateContactName();
   const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
   const prestationsExtra = sector.prestationsExtra(items);
 
@@ -1249,7 +1216,6 @@ function afficher(d) {
   const role = d.workers === 1 ? d.sector.roleSingular : d.sector.rolePlural;
   const flags = [
     `<span class="flag" style="background:#e0f2fe;color:#0369a1">📞 Joignable ${d.dispo}</span>`,
-    (!d.arriveeElevator && d.arriveeFloor > 0) ? `<span class="flag noelev">🏢 Étage ${d.arriveeFloor} sans ascenseur</span>` : '',
   ].filter(Boolean).join('');
 
   const ficheTitle = `Fiche client – Demande de ${d.sector.label.toLowerCase()} ${d.type === 'B2B' ? 'professionnel' : 'particulier'}`;
@@ -1257,7 +1223,7 @@ function afficher(d) {
   // Section 1 : informations sur le client
   const clientInfoRows = d.type === 'B2B'
     ? [
-        `<li><b>Entreprise :</b> ${d.clientName}</li>`,
+        `<li><b>Contact :</b> ${d.clientName}</li>`,
         `<li><b>Activité :</b> ${d.cat}</li>`,
         d.size ? `<li><b>Nombre de ${d.sizeUnit}s :</b> ${d.size}</li>` : '',
       ]
@@ -1374,7 +1340,6 @@ function afficher(d) {
       </div>
     </div>
     <div class="actions">
-      <button class="btn-copy" onclick="copier()">Copier la fiche</button>
       <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
     </div>
   `;
@@ -1422,15 +1387,6 @@ async function chargerContexteIA(d) {
     el.className = 'ai-context';
     el.textContent = '';
   }
-}
-
-function copier() {
-  const text = document.querySelector('.fiche-content')?.innerText || '';
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('.btn-copy');
-    btn.textContent = '✓ Copié';
-    setTimeout(() => btn.textContent = 'Copier la fiche', 2000);
-  });
 }
 
 function toggleAdminPanel() {
