@@ -150,41 +150,24 @@ main {
   box-shadow: 0 8px 30px rgba(0,0,0,0.3);
 }
 
-.row { display: flex; gap: 12px; }
-.field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
 label { font-size: 0.78rem; font-weight: 700; color: #6ee7b7; letter-spacing: 0.02em; text-transform: uppercase; }
 
-input {
+input, select {
   padding: 10px 13px;
   border: 1.5px solid rgba(255,255,255,0.1);
   border-radius: 12px;
   font-size: 0.92rem;
+  font-family: inherit;
   color: #f1f5f9;
   outline: none;
   transition: border-color 0.15s;
   background: rgba(2,6,23,0.5);
 }
+select { color-scheme: dark; cursor: pointer; }
 input::placeholder { color: #475569; }
-input:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
-
-.type-row { display: flex; gap: 8px; }
-.type-btn {
-  flex: 1;
-  padding: 9px 6px;
-  border: 1.5px solid rgba(255,255,255,0.1);
-  border-radius: 999px;
-  background: transparent;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: #94a3b8;
-}
-.type-btn.active {
-  background: linear-gradient(135deg, #10b981, #22d3ee);
-  color: #022c22;
-  border-color: transparent;
-}
+input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
 
 .btn-generate {
   padding: 13px;
@@ -330,7 +313,6 @@ input:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
 @media (max-width: 500px) {
   .items-grid { grid-template-columns: 1fr; }
   .budget-bar { flex-direction: column; }
-  .type-row { flex-wrap: wrap; }
 }
 </style>
 </head>
@@ -370,14 +352,12 @@ input:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
           <label>Département</label>
           <input type="text" id="dept" placeholder="Ex : 13" />
         </div>
-      </div>
-
-      <div class="field">
-        <label>Type de client</label>
-        <div class="type-row">
-          <button class="type-btn active" data-type="auto" onclick="selectType('auto')">Aléatoire</button>
-          <button class="type-btn" data-type="B2B" onclick="selectType('B2B')">Professionnel</button>
-          <button class="type-btn" data-type="B2C" onclick="selectType('B2C')">Particulier</button>
+        <div class="field">
+          <label>Secteur d'activité</label>
+          <select id="secteur">
+            <option value="demenagement">Déménagement</option>
+            <option value="nettoyage">Nettoyage</option>
+          </select>
         </div>
       </div>
 
@@ -412,90 +392,82 @@ function showApp(user) {
 }
 
 // ── DONNÉES ───────────────────────────────────────────────────────────────────
-let selectedType = 'auto';
 const genHistory = [];
 
-function selectType(t) {
-  selectedType = t;
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.type === t);
-  });
-}
-
-const B2B = [
-  { cat:'Cabinet comptable', size:[3,12], volBase:[15,35], items:[
+const B2B_DEMENAGEMENT = [
+  { cat:'Cabinet comptable', g:'m', size:[3,12], amountBase:[15,35], items:[
     {n:'Bureau',qpp:1,f:false},{n:'Fauteuil de bureau',qpp:1,f:false},
     {n:'Ordinateur',qpp:1,f:true},{n:'Écran',qpp:1.3,f:true},
     {n:'Armoire à archives',q:[2,5],f:false},{n:'Cartons d\'archives',q:[20,60],f:false},
     {n:'Table de réunion',q:[1,2],f:false},{n:'Imprimante',q:[1,2],f:true},
   ]},
-  { cat:'Cabinet médical', size:[2,6], volBase:[12,28], items:[
+  { cat:'Cabinet médical', g:'m', size:[2,6], amountBase:[12,28], items:[
     {n:'Bureau médecin',qpp:1,f:false},{n:'Fauteuil',qpp:1,f:false},
     {n:'Table d\'examen',q:[1,3],f:false},{n:'Armoire médicale',q:[2,4],f:false},
     {n:'Chaises salle d\'attente',q:[6,14],f:false},{n:'Cartons dossiers',q:[10,30],f:false},
     {n:'Ordinateur',q:[1,3],f:true},{n:'Mobilier d\'accueil',q:[1,2],f:false},
   ]},
-  { cat:'Agence immobilière', size:[4,10], volBase:[15,30], items:[
+  { cat:'Agence immobilière', g:'f', size:[4,10], amountBase:[15,30], items:[
     {n:'Bureau',qpp:1,f:false},{n:'Fauteuil',qpp:1,f:false},
     {n:'Ordinateur',qpp:1,f:true},{n:'Écran',qpp:1.2,f:true},
     {n:'Armoire',q:[2,5],f:false},{n:'Table de réunion',q:[1,2],f:false},
     {n:'Présentoir / vitrine',q:[1,3],f:true},{n:'Cartons administratifs',q:[10,25],f:false},
   ]},
-  { cat:'Agence de communication', size:[6,18], volBase:[20,50], items:[
+  { cat:'Agence de communication', g:'f', size:[6,18], amountBase:[20,50], items:[
     {n:'Bureau',qpp:1,f:false},{n:'Fauteuil ergonomique',qpp:1,f:false},
     {n:'Ordinateur portable',qpp:1,f:true},{n:'Écran',qpp:1.5,f:true},
     {n:'Table de réunion',q:[1,3],f:false},{n:'Écran TV / projecteur',q:[1,3],f:true},
     {n:'Tablette graphique',q:[2,6],f:true},{n:'Cartons matériel',q:[15,40],f:false},
   ]},
-  { cat:'Entreprise informatique', size:[5,25], volBase:[20,55], items:[
+  { cat:'Entreprise informatique', g:'f', size:[5,25], amountBase:[20,55], items:[
     {n:'Bureau',qpp:1,f:false},{n:'Fauteuil ergonomique',qpp:1,f:false},
     {n:'Ordinateur / laptop',qpp:1,f:true},{n:'Écran',qpp:2,f:true},
     {n:'Baie serveur',q:[1,4],f:true},{n:'Switch réseau',q:[2,6],f:true},
     {n:'Onduleur',q:[2,5],f:true},{n:'Cartons câblage',q:[10,30],f:false},
   ]},
-  { cat:'Commerce de détail', size:null, volBase:[20,60], items:[
+  { cat:'Commerce de détail', g:'m', size:null, amountBase:[20,60], items:[
     {n:'Rayonnage métal',q:[4,20],f:false},{n:'Présentoir',q:[2,8],f:false},
     {n:'Caisse enregistreuse',q:[1,3],f:true},{n:'Stock (cartons)',q:[25,100],f:false},
     {n:'Bureau caissier',q:[1,2],f:false},{n:'Vitrine',q:[1,4],f:true},
     {n:'Enseigne démontée',q:[1,1],f:true},
   ]},
-  { cat:'Restaurant', size:null, volBase:[25,70], items:[
+  { cat:'Restaurant', g:'m', size:null, amountBase:[25,70], items:[
     {n:'Table de restaurant',q:[8,30],f:false},{n:'Chaise de restaurant',q:[16,80],f:false},
     {n:'Vaisselle emballée (carton)',q:[10,35],f:true},{n:'Mobilier de bar',q:[1,3],f:false},
     {n:'Équipement cuisine démontable',q:[3,8],f:true},{n:'Caisse enregistreuse',q:[1,2],f:true},
   ]},
-  { cat:'Étude notariale', size:[4,10], volBase:[20,50], items:[
+  { cat:'Étude notariale', g:'f', size:[4,10], amountBase:[20,50], items:[
     {n:'Bureau',qpp:1,f:false},{n:'Fauteuil cuir',qpp:1,f:false},
     {n:'Armoire à archives sécurisée',q:[3,8],f:false},{n:'Coffre-fort',q:[1,2],f:false},
     {n:'Cartons archives',q:[40,120],f:false},{n:'Bibliothèque',q:[2,5],f:false},
     {n:'Ordinateur',q:[2,6],f:true},
   ]},
-  { cat:'Organisme de formation', size:[3,12], volBase:[15,40], items:[
+  { cat:'Organisme de formation', g:'m', size:[3,12], amountBase:[15,40], items:[
     {n:'Table de formation',qpp:1.5,f:false},{n:'Chaise',qpp:1.5,f:false},
     {n:'Tableau blanc',q:[2,6],f:false},{n:'Vidéoprojecteur',q:[1,4],f:true},
     {n:'Bureau formateur',q:[2,4],f:false},{n:'Cartons matériel pédagogique',q:[10,30],f:false},
   ]},
-  { cat:'Pharmacie', size:null, volBase:[20,50], items:[
+  { cat:'Pharmacie', g:'f', size:null, amountBase:[20,50], items:[
     {n:'Rayonnage pharmacie',q:[6,18],f:false},{n:'Comptoir d\'accueil',q:[1,2],f:false},
     {n:'Réfrigérateur médicaments',q:[1,3],f:true},{n:'Stock médicaments (cartons)',q:[30,80],f:true},
     {n:'Présentoir parapharmacie',q:[4,12],f:false},{n:'Ordinateur + TPE',q:[2,4],f:true},
   ]},
 ];
 
-const B2C = [
-  { cat:'Studio étudiant', vol:[8,18], extra:['Pas d\'ascenseur','Accès étroit'], items:[
+const B2C_DEMENAGEMENT = [
+  { cat:'Studio étudiant', amount:[8,18], extra:['Pas d\'ascenseur','Accès étroit'], items:[
     {n:'Lit 1 personne',q:[1,1],f:false},{n:'Bureau',q:[1,1],f:false},
     {n:'Armoire',q:[1,1],f:false},{n:'Cartons affaires',q:[5,15],f:false},
     {n:'Électroménager (micro-ondes…)',q:[1,1],f:true},
   ]},
-  { cat:'Couple — appartement 2 pièces', vol:[20,38], items:[
+  { cat:'Couple — appartement 2 pièces', amount:[20,38], items:[
     {n:'Lit double',q:[1,1],f:false},{n:'Armoire',q:[1,2],f:false},
     {n:'Canapé',q:[1,1],f:false},{n:'Table salle à manger',q:[1,1],f:false},
     {n:'Chaise',q:[2,6],f:false},{n:'Réfrigérateur',q:[1,1],f:false},
     {n:'Lave-linge',q:[1,1],f:false},{n:'TV',q:[1,1],f:true},
     {n:'Cartons divers',q:[12,30],f:false},
   ]},
-  { cat:'Famille — maison', vol:[40,80], items:[
+  { cat:'Famille — maison', amount:[40,80], items:[
     {n:'Lit double',q:[1,1],f:false},{n:'Lit enfant',q:[1,2],f:false},
     {n:'Armoire',q:[2,4],f:false},{n:'Canapé',q:[1,2],f:false},
     {n:'Table salle à manger',q:[1,1],f:false},{n:'Chaise',q:[4,8],f:false},
@@ -503,36 +475,237 @@ const B2C = [
     {n:'TV',q:[1,2],f:true},{n:'Cartons vaisselle',q:[5,12],f:true},
     {n:'Cartons livres / divers',q:[20,45],f:false},
   ]},
-  { cat:'Mutation professionnelle', vol:[25,50], items:[
+  { cat:'Mutation professionnelle', amount:[25,50], items:[
     {n:'Lit double',q:[1,1],f:false},{n:'Armoire',q:[1,3],f:false},
     {n:'Bureau à domicile',q:[1,1],f:false},{n:'Canapé',q:[1,1],f:false},
     {n:'Réfrigérateur',q:[1,1],f:false},{n:'Matériel informatique',q:[1,2],f:true},
     {n:'Cartons divers',q:[18,38],f:false},
   ]},
-  { cat:'Personne âgée — réduction de logement', vol:[12,30], extra:['Ascenseur indispensable','Déménagement partiel'], items:[
+  { cat:'Personne âgée — réduction de logement', amount:[12,30], extra:['Ascenseur indispensable','Déménagement partiel'], items:[
     {n:'Lit',q:[1,1],f:false},{n:'Fauteuil',q:[1,2],f:false},
     {n:'Armoire',q:[1,2],f:false},{n:'TV',q:[1,1],f:true},
     {n:'Cartons vaisselle',q:[3,8],f:true},{n:'Cartons effets personnels',q:[5,15],f:false},
   ]},
-  { cat:'Déménagement urgent', vol:[10,35], extra:['Intervention sous 48h'], items:[
+  { cat:'Déménagement urgent', amount:[10,35], extra:['Intervention sous 48h'], items:[
     {n:'Lit',q:[1,2],f:false},{n:'Armoire',q:[1,2],f:false},
     {n:'Canapé',q:[1,1],f:false},{n:'Cartons non triés',q:[10,25],f:false},
   ]},
-  { cat:'Appartement sans ascenseur', vol:[22,50], extra:['Pas d\'ascenseur','Escalier étroit'], items:[
+  { cat:'Appartement sans ascenseur', amount:[22,50], extra:['Pas d\'ascenseur','Escalier étroit'], items:[
     {n:'Lit double',q:[1,1],f:false},{n:'Armoire 3 portes',q:[1,2],f:false},
     {n:'Canapé d\'angle',q:[1,1],f:false},{n:'Réfrigérateur',q:[1,1],f:false},
     {n:'Lave-linge',q:[1,1],f:false},{n:'Cartons divers',q:[15,30],f:false},
   ]},
-  { cat:'Déménagement avec piano', vol:[18,40], extra:['Piano — monte-meuble à prévoir'], items:[
+  { cat:'Déménagement avec piano', amount:[18,40], extra:['Piano — monte-meuble à prévoir'], items:[
     {n:'Piano droit',q:[1,1],f:true},{n:'Lit',q:[1,2],f:false},
     {n:'Armoire',q:[1,2],f:false},{n:'Canapé',q:[1,1],f:false},
     {n:'Cartons divers',q:[10,22],f:false},
   ]},
-  { cat:'Transfert vers garde-meuble', vol:[8,25], items:[
+  { cat:'Transfert vers garde-meuble', amount:[8,25], items:[
     {n:'Canapé',q:[1,1],f:false},{n:'Armoire',q:[1,2],f:false},
     {n:'Cartons affaires diverses',q:[10,35],f:false},{n:'Vélo',q:[1,2],f:false},
   ]},
 ];
+
+const CONTRAINTES_DEMENAGEMENT = [
+  'Stationnement à réserver la veille','Accès livraison à confirmer avec le gardien',
+  'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
+  'Ascenseur présent mais petit (90×110 cm)','Parking souterrain — hauteur limitée 2 m',
+  'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
+  'Monte-meuble probablement nécessaire','Client disponible uniquement le matin',
+  'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
+  'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
+  'Matériel informatique à sécuriser',
+];
+
+const Q_B2B_DEMENAGEMENT = [
+  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires de bureau ?',
+  'Proposez-vous le démontage et remontage du mobilier ?','Gérez-vous le matériel informatique fragile ?',
+  'Combien de personnes pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
+  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
+  'Proposez-vous la fourniture de cartons et emballage ?','Êtes-vous disponible dans ce délai ?',
+];
+
+const Q_B2C_DEMENAGEMENT = [
+  'Intervenez-vous dans ces deux communes ?','Disposez-vous d\'un monte-meuble si besoin ?',
+  'Proposez-vous le démontage et remontage des meubles ?','Pouvez-vous fournir les cartons et l\'emballage ?',
+  'Combien de déménageurs seriez-vous ?','La fourchette de prix vous semble-t-elle réaliste ?',
+  'Êtes-vous disponible dans ce délai ?','Quelle est votre politique en cas de casse ?',
+  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le samedi ?',
+];
+
+const B2B_NETTOYAGE = [
+  { cat:'Bureaux / open space', size:[5,40], sizeUnit:'poste', amountBase:[80,320], items:[
+    {n:'Dépoussiérage postes de travail',qpp:1,f:false},{n:'Vidage des corbeilles',qpp:1,f:false},
+    {n:'Nettoyage sanitaires',q:[2,6],f:false},{n:'Nettoyage sols communs',q:[1,3],f:false},
+    {n:'Nettoyage cuisine / kitchenette',q:[1,2],f:false},{n:'Nettoyage vitres intérieures',q:[4,15],f:false},
+  ]},
+  { cat:'Cabinet médical', size:[2,8], sizeUnit:'praticien', amountBase:[30,90], items:[
+    {n:'Désinfection salle d\'examen',qpp:1,f:false},{n:'Nettoyage salle d\'attente',q:[1,1],f:false},
+    {n:'Nettoyage sanitaires',q:[1,3],f:false},{n:'Nettoyage sols',q:[2,5],f:false},
+    {n:'Nettoyage vitres',q:[2,5],f:false},
+  ]},
+  { cat:'Cabinet comptable / juridique', size:[3,15], sizeUnit:'collaborateur', amountBase:[40,120], items:[
+    {n:'Dépoussiérage postes de travail',qpp:1,f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
+    {n:'Nettoyage sols',q:[2,6],f:false},{n:'Nettoyage vitres',q:[2,6],f:false},
+    {n:'Nettoyage cuisine / kitchenette',q:[1,1],f:false},
+  ]},
+  { cat:'Copropriété — parties communes', size:null, amountBase:[100,400], items:[
+    {n:'Nettoyage hall d\'entrée',q:[1,1],f:false},{n:'Nettoyage cage d\'escalier',q:[2,6],f:false},
+    {n:'Nettoyage ascenseur',q:[1,2],f:false},{n:'Sortie / rentrée des poubelles',q:[1,1],f:false},
+    {n:'Nettoyage vitres d\'entrée',q:[1,3],f:false},{n:'Nettoyage parking / sous-sol',q:[1,1],f:false},
+  ]},
+  { cat:'Restaurant / cuisine professionnelle', size:null, amountBase:[40,110], items:[
+    {n:'Dégraissage des hottes',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
+    {n:'Nettoyage sols de salle',q:[1,1],f:false},{n:'Nettoyage sanitaires clients',q:[1,3],f:false},
+    {n:'Nettoyage vitrines',q:[1,3],f:false},
+  ]},
+  { cat:'Commerce / boutique', size:null, amountBase:[30,90], items:[
+    {n:'Nettoyage sols',q:[1,1],f:false},{n:'Nettoyage vitrines',q:[1,3],f:false},
+    {n:'Nettoyage sanitaires',q:[1,2],f:false},{n:'Nettoyage réserve',q:[1,1],f:false},
+  ]},
+  { cat:'Salle de sport', size:null, amountBase:[80,250], items:[
+    {n:'Nettoyage vestiaires',q:[2,6],f:false},{n:'Nettoyage douches',q:[2,8],f:false},
+    {n:'Nettoyage sols',q:[1,1],f:false},{n:'Désinfection des appareils',q:[10,30],f:false},
+    {n:'Nettoyage sanitaires',q:[2,4],f:false},
+  ]},
+  { cat:'Établissement scolaire / formation', size:[10,40], sizeUnit:'salle', amountBase:[150,500], items:[
+    {n:'Nettoyage salles de classe',qpp:1,f:false},{n:'Nettoyage sanitaires',q:[3,8],f:false},
+    {n:'Nettoyage sols communs',q:[1,1],f:false},{n:'Nettoyage cour / préau',q:[1,1],f:false},
+  ]},
+  { cat:'Entrepôt / locaux industriels', size:null, amountBase:[200,600], items:[
+    {n:'Nettoyage sols industriels',q:[1,1],f:false},{n:'Nettoyage sanitaires / vestiaires',q:[2,5],f:false},
+    {n:'Nettoyage bureaux annexes',q:[1,3],f:false},{n:'Évacuation des déchets',q:[1,1],f:false},
+  ]},
+  { cat:'Résidence hôtelière / Airbnb', size:[5,30], sizeUnit:'chambre', amountBase:[60,220], items:[
+    {n:'Nettoyage des chambres',qpp:1,f:false},{n:'Nettoyage sanitaires',qpp:1,f:false},
+    {n:'Gestion du linge / blanchisserie',qpp:1,f:false},{n:'Nettoyage parties communes',q:[1,1],f:false},
+  ]},
+];
+
+const B2C_NETTOYAGE = [
+  { cat:'Ménage récurrent — appartement', amount:[40,70], items:[
+    {n:'Dépoussiérage',q:[3,5],f:false},{n:'Lavage des sols',q:[3,5],f:false},
+    {n:'Nettoyage sanitaires',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
+    {n:'Vitres intérieures',q:[2,6],f:false},
+  ]},
+  { cat:'Grand ménage de printemps', amount:[50,90], items:[
+    {n:'Vitres intérieures et extérieures',q:[4,10],f:false},{n:'Dépoussiérage en profondeur',q:[4,8],f:false},
+    {n:'Nettoyage des sols',q:[4,8],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
+    {n:'Nettoyage électroménager',q:[2,4],f:false},
+  ]},
+  { cat:'Nettoyage fin de bail', amount:[30,80], extra:['Logement vide','État des lieux à respecter'], items:[
+    {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
+    {n:'Nettoyage cuisine complète',q:[1,1],f:false},{n:'Nettoyage des placards',q:[3,8],f:false},
+    {n:'Vitres',q:[3,8],f:false},
+  ]},
+  { cat:'Nettoyage après travaux', amount:[40,100], extra:['Poussière de chantier','Protection des sols à prévoir'], items:[
+    {n:'Évacuation de la poussière fine',q:[1,1],f:false},{n:'Nettoyage des sols',q:[4,10],f:false},
+    {n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
+    {n:'Dépoussiérage des surfaces',q:[4,10],f:false},
+  ]},
+  { cat:'Nettoyage avant emménagement', amount:[35,70], items:[
+    {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,2],f:false},
+    {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,6],f:false},
+    {n:'Nettoyage des placards',q:[2,6],f:false},
+  ]},
+  { cat:'Remise en état — départ locataire', amount:[30,70], extra:['Restitution des clés sous délai court'], items:[
+    {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,2],f:false},
+    {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,5],f:false},
+  ]},
+  { cat:'Nettoyage tapis et moquettes', amount:[15,40], items:[
+    {n:'Shampouinage moquette',q:[1,3],f:false},{n:'Traitement des taches',q:[1,4],f:false},
+    {n:'Nettoyage sols annexes',q:[1,3],f:false},
+  ]},
+  { cat:'Ménage occasionnel — grande maison', amount:[80,150], items:[
+    {n:'Dépoussiérage',q:[6,12],f:false},{n:'Nettoyage des sols',q:[6,12],f:false},
+    {n:'Nettoyage sanitaires',q:[2,4],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
+    {n:'Vitres',q:[6,14],f:false},
+  ]},
+  { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], extra:['Intervention rapide nécessaire'], items:[
+    {n:'Extraction eau / humidité',q:[1,1],f:false},{n:'Nettoyage des sols',q:[3,8],f:false},
+    {n:'Désinfection',q:[2,5],f:false},{n:'Nettoyage du mobilier touché',q:[2,6],f:false},
+  ]},
+];
+
+const CONTRAINTES_NETTOYAGE = [
+  'Intervention à réaliser hors présence du client','Clés à récupérer auprès du gardien',
+  'Alarme à désactiver puis réactiver','Accès par badge à prévoir',
+  'Produits allergènes à éviter','Prestataire devra fournir le matériel',
+  'Stationnement à réserver la veille','Code d\'entrée à obtenir',
+  'Intervention souhaitée tôt le matin','Zones sensibles à signaler avant intervention',
+  'Confidentialité des documents à respecter','Prestation à renouveler chaque semaine',
+  'Accès livraison à confirmer avec le gardien','Client disponible uniquement en fin de journée',
+];
+
+const Q_B2B_NETTOYAGE = [
+  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires d\'ouverture ?',
+  'Fournissez-vous les produits et le matériel ?','Utilisez-vous des produits écologiques ou certifiés ?',
+  'Combien d\'agents pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
+  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
+  'Proposez-vous un contrat récurrent (hebdomadaire, mensuel) ?','Êtes-vous disponible dans ce délai ?',
+];
+
+const Q_B2C_NETTOYAGE = [
+  'Intervenez-vous dans cette commune ?','Fournissez-vous les produits et le matériel ?',
+  'Utilisez-vous des produits écologiques ?','Combien d\'agents seriez-vous ?',
+  'La fourchette de prix vous semble-t-elle réaliste ?','Êtes-vous disponible dans ce délai ?',
+  'Proposez-vous une prestation ponctuelle ou uniquement récurrente ?','Quelle est votre politique en cas d\'oubli ou de dommage ?',
+  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le week-end ?',
+];
+
+function person(cat) {
+  if (cat.startsWith('Fam')) return 'Une famille';
+  if (cat.startsWith('Couple')) return 'Un couple';
+  if (cat.startsWith('Per')) return 'Une personne âgée';
+  return 'Le client';
+}
+
+const SECTORS = {
+  demenagement: {
+    label: 'Déménagement',
+    unit: 'm³',
+    amountLabel: 'Volume estimé',
+    itemsTitle: 'Éléments à déménager',
+    roleSingular: 'déménageur',
+    rolePlural: 'déménageurs',
+    B2B: B2B_DEMENAGEMENT,
+    B2C: B2C_DEMENAGEMENT,
+    questionsB2B: Q_B2B_DEMENAGEMENT,
+    questionsB2C: Q_B2C_DEMENAGEMENT,
+    contraintes: CONTRAINTES_DEMENAGEMENT,
+    price: { base: 350, unitRate: 28, distRate: 2.5, workerRate: 65, urgentMult: 1.25, weekendMult: 1.20 },
+    workers: amount => amount < 20 ? 2 : amount < 45 ? rand(2, 3) : rand(3, 5),
+    duration: (amount, dist) => Math.max(2, Math.round(amount / 8 + dist / 30)),
+    summaryB2B(cat, g, sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
+      return `Un${g === 'f' ? 'e' : ''} <b>${cat.toLowerCase()}${sizeStr}</b> prévoit de transférer ses locaux de <b>${depart}</b> vers <b>${arrivee}</b>, soit environ ${dist} km. Le besoin comprend notamment : ${topItems}. Volume estimé : <b>${amount} m³</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${priceTarget.toLocaleString('fr-FR')} € HT</b>.`;
+    },
+    summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
+      return `${person(cat)} (<b>${cat.toLowerCase()}</b>) souhaite déménager de <b>${depart}</b> vers <b>${arrivee}</b> (environ ${dist} km). Éléments : ${topItems}. Volume estimé : <b>${amount} m³</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${priceTarget.toLocaleString('fr-FR')} € TTC</b>.`;
+    },
+  },
+  nettoyage: {
+    label: 'Nettoyage',
+    unit: 'm²',
+    amountLabel: 'Surface estimée',
+    itemsTitle: 'Prestations à réaliser',
+    roleSingular: 'agent de nettoyage',
+    rolePlural: 'agents de nettoyage',
+    B2B: B2B_NETTOYAGE,
+    B2C: B2C_NETTOYAGE,
+    questionsB2B: Q_B2B_NETTOYAGE,
+    questionsB2C: Q_B2C_NETTOYAGE,
+    contraintes: CONTRAINTES_NETTOYAGE,
+    price: { base: 90, unitRate: 3.2, distRate: 2, workerRate: 26, urgentMult: 1.20, weekendMult: 1.15 },
+    workers: amount => amount < 60 ? rand(1, 2) : amount < 180 ? rand(2, 3) : rand(3, 4),
+    duration: (amount, dist) => Math.max(2, Math.round(amount / 25 + dist / 40)),
+    summaryB2B(cat, g, sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
+      return `Un site de type <b>${cat.toLowerCase()}${sizeStr}</b> à <b>${depart}</b> recherche un prestataire de nettoyage pour son site de <b>${arrivee}</b> (~${dist} km). Prestations attendues : ${topItems}. Surface estimée : <b>${amount} m²</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${priceTarget.toLocaleString('fr-FR')} € HT</b>.`;
+    },
+    summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
+      return `${person(cat)} (<b>${cat.toLowerCase()}</b>) recherche un service de nettoyage à <b>${arrivee}</b> (déplacement depuis ${depart}, ~${dist} km). Prestations : ${topItems}. Surface estimée : <b>${amount} m²</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${priceTarget.toLocaleString('fr-FR')} € TTC</b>.`;
+    },
+  },
+};
 
 const ZONES = {
   '75':['Paris 11e','Paris 15e','Paris 18e','Paris 20e','Paris 13e','Paris 17e','Paris 3e','Paris 6e'],
@@ -565,33 +738,6 @@ const DELAIS = [
   'dans le mois','d\'ici 3 semaines','dans 6 semaines','pour début du mois prochain',
 ];
 
-const CONTRAINTES = [
-  'Stationnement à réserver la veille','Accès livraison à confirmer avec le gardien',
-  'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
-  'Ascenseur présent mais petit (90×110 cm)','Parking souterrain — hauteur limitée 2 m',
-  'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
-  'Monte-meuble probablement nécessaire','Client disponible uniquement le matin',
-  'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
-  'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
-  'Matériel informatique à sécuriser',
-];
-
-const Q_B2B = [
-  'Intervenez-vous dans ce secteur ?','Pouvez-vous intervenir en dehors des horaires de bureau ?',
-  'Proposez-vous le démontage et remontage du mobilier ?','Gérez-vous le matériel informatique fragile ?',
-  'Combien de personnes pouvez-vous mobiliser ?','La fourchette de prix vous paraît-elle cohérente ?',
-  'Disposez-vous d\'une assurance RC professionnelle ?','Une visite technique préalable est-elle nécessaire ?',
-  'Proposez-vous la fourniture de cartons et emballage ?','Êtes-vous disponible dans ce délai ?',
-];
-
-const Q_B2C = [
-  'Intervenez-vous dans ces deux communes ?','Disposez-vous d\'un monte-meuble si besoin ?',
-  'Proposez-vous le démontage et remontage des meubles ?','Pouvez-vous fournir les cartons et l\'emballage ?',
-  'Combien de déménageurs seriez-vous ?','La fourchette de prix vous semble-t-elle réaliste ?',
-  'Êtes-vous disponible dans ce délai ?','Quelle est votre politique en cas de casse ?',
-  'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le samedi ?',
-];
-
 // ── UTILITAIRES ───────────────────────────────────────────────────────────────
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -606,11 +752,12 @@ function getZones(dept, ville) {
   return ZONES['13'];
 }
 
-function computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend) {
-  let base = 350 + vol * 28 + dist * 2.5 + workers * duration * 65;
+function computePrice(sector, amount, dist, workers, duration, floor, elevator, urgent, weekend) {
+  const p = sector.price;
+  let base = p.base + amount * p.unitRate + dist * p.distRate + workers * duration * p.workerRate;
   if (!elevator && floor > 0) base += floor * 30;
-  if (urgent) base *= 1.25;
-  if (weekend) base *= 1.20;
+  if (urgent) base *= p.urgentMult;
+  if (weekend) base *= p.weekendMult;
   base *= (1 + Math.random() * 0.25);
   const target = Math.round(base / 50) * 50;
   return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
@@ -618,15 +765,16 @@ function computePrice(vol, dist, workers, duration, floor, elevator, urgent, wee
 
 // ── GÉNÉRATION ────────────────────────────────────────────────────────────────
 function generer() {
+  const sector = SECTORS[document.getElementById('secteur').value];
   const ville = document.getElementById('ville').value.trim();
   const dept = document.getElementById('dept').value.trim();
   const zones = getZones(dept, ville);
 
-  let type = selectedType === 'auto' ? (Math.random() > 0.45 ? 'B2C' : 'B2B') : selectedType;
+  let type = Math.random() > 0.45 ? 'B2C' : 'B2B';
   let profile, cat, depart, arrivee;
 
   for (let t = 0; t < 8; t++) {
-    profile = pick(type === 'B2B' ? B2B : B2C);
+    profile = pick(type === 'B2B' ? sector.B2B : sector.B2C);
     cat = profile.cat;
     depart = pick(zones);
     arrivee = pick(zones.filter(z => z !== depart)) || zones[0];
@@ -635,7 +783,7 @@ function generer() {
   }
   genHistory.push({ cat, depart });
 
-  let items = [], vol, constraints, size = null;
+  let items = [], amount, constraints, size = null;
 
   if (type === 'B2B') {
     size = profile.size ? rand(...profile.size) : null;
@@ -646,13 +794,13 @@ function generer() {
         items.push({ n: it.n, q: rand(...it.q), f: it.f });
       }
     }
-    vol = rand(...profile.volBase);
-    if (size) vol = Math.round(vol * size / 8);
-    constraints = pickN(CONTRAINTES, rand(2, 4));
+    amount = rand(...profile.amountBase);
+    if (size) amount = Math.round(amount * size / 8);
+    constraints = pickN(sector.contraintes, rand(2, 4));
   } else {
     for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
-    vol = rand(...profile.vol);
-    constraints = [...(profile.extra || []), ...pickN(CONTRAINTES, rand(1, 3))];
+    amount = rand(...profile.amount);
+    constraints = [...(profile.extra || []), ...pickN(sector.contraintes, rand(1, 3))];
   }
 
   items = items.filter(i => i.q > 0);
@@ -664,26 +812,27 @@ function generer() {
   const dist = rand(3, 35);
   const floor = rand(0, 5);
   const elevator = Math.random() > 0.4;
-  const workers = vol < 20 ? 2 : vol < 45 ? rand(2,3) : rand(3,5);
-  const duration = Math.max(2, Math.round(vol / 8 + dist / 30));
-  const price = computePrice(vol, dist, workers, duration, floor, elevator, urgent, weekend);
-  const questions = pickN(type === 'B2B' ? Q_B2B : Q_B2C, 5);
+  const workers = sector.workers(amount);
+  const duration = sector.duration(amount, dist);
+  const price = computePrice(sector, amount, dist, workers, duration, floor, elevator, urgent, weekend);
+  const questions = pickN(type === 'B2B' ? sector.questionsB2B : sector.questionsB2C, 5);
 
-  let summary;
   const topItems = items.slice(0,4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+  let summary;
   if (type === 'B2B') {
-    const sizeStr = size ? ` de ${size} collaborateur${size > 1 ? 's' : ''}` : '';
-    summary = `Un${cat.startsWith('A') ? 'e' : ''} <b>${cat.toLowerCase()}${sizeStr}</b> prévoit de transférer ses locaux de <b>${depart}</b> vers <b>${arrivee}</b>, soit environ ${dist} km. Le besoin comprend notamment : ${topItems}. Volume estimé : <b>${vol} m³</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${price.target.toLocaleString('fr-FR')} € HT</b>.`;
+    const unit = profile.sizeUnit || 'collaborateur';
+    const sizeStr = size ? ` de ${size} ${unit}${size > 1 ? 's' : ''}` : '';
+    summary = sector.summaryB2B(cat, profile.g || 'm', sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, price.target);
   } else {
-    const person = cat.startsWith('Fam') ? 'Une famille' : cat.startsWith('Cou') ? 'Un couple' : cat.startsWith('Per') ? 'Une personne âgée' : 'Le client';
-    summary = `${person} (<b>${cat.toLowerCase()}</b>) souhaite déménager de <b>${depart}</b> vers <b>${arrivee}</b> (environ ${dist} km). Éléments : ${topItems}. Volume estimé : <b>${vol} m³</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${price.target.toLocaleString('fr-FR')} € TTC</b>.`;
+    summary = sector.summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, price.target);
   }
 
-  afficher({ type, cat, depart, arrivee, dist, items, vol, constraints, delai, dispo, workers, duration, floor, elevator, price, questions, summary, urgent, weekend });
+  afficher({ sector, type, cat, depart, arrivee, dist, items, amount, constraints, delai, dispo, workers, duration, floor, elevator, price, questions, summary, urgent, weekend });
 }
 
 function afficher(d) {
   const pl = d.type === 'B2B' ? 'HT' : 'TTC';
+  const role = d.workers === 1 ? d.sector.roleSingular : d.sector.rolePlural;
   const flags = [
     d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
     `<span class="flag" style="background:#e0f2fe;color:#0369a1">📞 Joignable ${d.dispo}</span>`,
@@ -694,14 +843,14 @@ function afficher(d) {
   document.getElementById('result').innerHTML = `
     <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
     <div class="result-title">${d.cat}</div>
-    <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.vol} m³ · ${d.workers} déménageurs · ${d.duration}h</div>
+    <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
     ${flags ? `<div class="flags">${flags}</div>` : ''}
     <div class="section">
       <div class="section-title">Résumé</div>
       <div class="summary-text">${d.summary}</div>
     </div>
     <div class="section">
-      <div class="section-title">Éléments à déménager</div>
+      <div class="section-title">${d.sector.itemsTitle}</div>
       <div class="items-grid">${d.items.map(i => `<div class="item-row"><span>${i.n}${i.f ? '<span class="fragile">fragile</span>' : ''}</span><span class="item-qty">×${i.q}</span></div>`).join('')}</div>
     </div>
     ${d.constraints.length ? `<div class="section"><div class="section-title">Contraintes</div><div class="tags">${d.constraints.map(c => `<span class="tag">${c}</span>`).join('')}</div></div>` : ''}
