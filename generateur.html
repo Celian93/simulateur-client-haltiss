@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -64,16 +64,10 @@
   .q-num { color: #4f46e5; font-weight: 700; flex-shrink: 0; }
 
   .actions { display: flex; gap: 8px; margin-top: 16px; }
-  .offer-actions { display: flex; gap: 8px; flex: 1; }
   .btn-copy { flex: 1; padding: 9px; border: 1.5px solid #ddd; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #333; transition: all 0.15s; }
   .btn-copy:hover { border-color: #4f46e5; color: #4f46e5; }
   .btn-new { flex: 1; padding: 9px; border: 1.5px solid #4f46e5; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #4f46e5; transition: all 0.15s; }
   .btn-new:hover { background: #4f46e5; color: white; }
-  .btn-offer-free, .btn-offer-paid { flex: 1; padding: 9px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-  .btn-offer-free { border: 1.5px solid #4f46e5; background: white; color: #4f46e5; }
-  .btn-offer-free:hover { background: #eef2ff; }
-  .btn-offer-paid { border: 1.5px solid #4f46e5; background: #4f46e5; color: white; }
-  .btn-offer-paid:hover { background: #4338ca; }
 
   .info-route { font-size: 0.8rem; color: #888; background: #f9f9f9; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; }
   .info-route b { color: #333; }
@@ -568,10 +562,7 @@ function afficher(d) {
 
     <div class="actions">
       <button class="btn-copy" onclick="copier()">Copier le résumé</button>
-      <div class="offer-actions">
-        <button class="btn-offer-free" onclick="selectionnerOffre('free')">Offre free</button>
-        <button class="btn-offer-paid" onclick="selectionnerOffre('payante')">Offre payante participation</button>
-      </div>
+      <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
     </div>
   `;
   document.getElementById('result').className = 'result show';
@@ -586,11 +577,6 @@ function copier() {
     btn.textContent = 'Copié ✓';
     setTimeout(() => btn.textContent = 'Copier le résumé', 1800);
   });
-}
-
-function selectionnerOffre(type) {
-  const label = type === 'free' ? 'Offre free' : 'Offre payante participation';
-  alert(`${label} sélectionnée pour ce client.`);
 }
 
 document.addEventListener('keydown', e => {
