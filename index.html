@@ -169,6 +169,20 @@ select { color-scheme: dark; cursor: pointer; }
 input::placeholder { color: #475569; }
 input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75); }
 
+.location-info {
+  display: none;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.location-info.show { display: block; }
+.location-info b { color: #6ee7b7; }
+.location-info.pending { color: #64748b; font-style: italic; }
+.location-info.error { color: #fca5a5; background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.2); }
+
 .btn-generate {
   padding: 13px;
   background: linear-gradient(135deg, #10b981, #22d3ee);
@@ -349,8 +363,8 @@ input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75)
           <input type="text" id="ville" placeholder="Ex : Marseille" />
         </div>
         <div class="field">
-          <label>Département</label>
-          <input type="text" id="dept" placeholder="Ex : 13" />
+          <label>Code postal</label>
+          <input type="text" id="cp" inputmode="numeric" maxlength="5" placeholder="Ex : 13001" />
         </div>
         <div class="field">
           <label>Secteur d'activité</label>
@@ -360,6 +374,8 @@ input:focus, select:focus { border-color: #10b981; background: rgba(2,6,23,0.75)
           </select>
         </div>
       </div>
+
+      <div class="location-info" id="location-info"></div>
 
       <button class="btn-generate" onclick="generer()">Générer un client</button>
     </div>
@@ -763,12 +779,78 @@ function computePrice(sector, amount, dist, workers, duration, floor, elevator, 
   return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
 }
 
+// ── LOCALISATION (code postal → commune / département / région / pays) ────────
+let resolvedLocation = null;
+let resolvedFor = '';
+
+function debounce(fn, delay) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+function renderLocationInfo(state, data) {
+  const el = document.getElementById('location-info');
+  el.classList.remove('pending', 'error');
+  if (state === 'pending') {
+    el.classList.add('show', 'pending');
+    el.textContent = 'Recherche de la commune…';
+  } else if (state === 'error') {
+    el.classList.add('show', 'error');
+    el.textContent = 'Code postal introuvable — vérifiez la saisie.';
+  } else if (state === 'ok') {
+    el.classList.add('show');
+    el.innerHTML = `<b>${data.commune}</b> · ${data.departementNom} (${data.departementCode}) · ${data.regionNom} · ${data.pays}`;
+  } else {
+    el.classList.remove('show');
+    el.innerHTML = '';
+  }
+}
+
+async function resolveCodePostal(cp) {
+  if (!/^\d{5}$/.test(cp)) {
+    resolvedLocation = null;
+    resolvedFor = '';
+    renderLocationInfo('idle');
+    return;
+  }
+  renderLocationInfo('pending');
+  try {
+    const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,codeDepartement,departement,region&format=json`);
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) {
+      resolvedLocation = null;
+      resolvedFor = cp;
+      renderLocationInfo('error');
+      return;
+    }
+    const c = pick(data);
+    resolvedLocation = {
+      commune: c.nom,
+      departementCode: c.codeDepartement,
+      departementNom: c.departement?.nom || '',
+      regionNom: c.region?.nom || '',
+      pays: 'France',
+    };
+    resolvedFor = cp;
+    renderLocationInfo('ok', resolvedLocation);
+  } catch (e) {
+    resolvedLocation = null;
+    resolvedFor = cp;
+    renderLocationInfo('error');
+  }
+}
+
+document.getElementById('cp').addEventListener('input', debounce(e => resolveCodePostal(e.target.value.trim()), 450));
+
 // ── GÉNÉRATION ────────────────────────────────────────────────────────────────
-function generer() {
+async function generer() {
   const sector = SECTORS[document.getElementById('secteur').value];
   const ville = document.getElementById('ville').value.trim();
-  const dept = document.getElementById('dept').value.trim();
-  const zones = getZones(dept, ville);
+  const cp = document.getElementById('cp').value.trim();
+  if (cp && cp !== resolvedFor) await resolveCodePostal(cp);
+
+  const deptCode = (resolvedLocation && resolvedLocation.departementCode) || cp.replace(/\D/g,'').slice(0,2) || '';
+  const zones = getZones(deptCode, ville);
 
   let type = Math.random() > 0.45 ? 'B2C' : 'B2B';
   let profile, cat, depart, arrivee;
@@ -885,7 +967,7 @@ function copier() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && ['ville','dept'].includes(e.target.id)) generer();
+  if (e.key === 'Enter' && ['ville','cp'].includes(e.target.id)) generer();
 });
 </script>
 </body>
