@@ -361,7 +361,6 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
 .flag.urgent { background: rgba(248,113,113,0.14); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
-.flag.weekend { background: rgba(252,211,77,0.14); color: #fcd34d; border: 1px solid rgba(252,211,77,0.3); }
 .flag.noelev { background: rgba(196,132,252,0.14); color: #c4b4ff; border: 1px solid rgba(196,132,252,0.3); }
 
 .actions { display: flex; gap: 8px; margin-top: 18px; }
@@ -1167,7 +1166,6 @@ function afficher(d) {
   const flags = [
     d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
     `<span class="flag" style="background:#e0f2fe;color:#0369a1">📞 Joignable ${d.dispo}</span>`,
-    d.weekend ? '<span class="flag weekend">📅 Week-end</span>' : '',
     (!d.arriveeElevator && d.arriveeFloor > 0) ? `<span class="flag noelev">🏢 Étage ${d.arriveeFloor} sans ascenseur</span>` : '',
   ].filter(Boolean).join('');
 
