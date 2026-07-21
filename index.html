@@ -4,7 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Haltiss — Générateur de clients</title>
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<script>
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  window.netlifyIdentity = {
+    on(event, callback) {
+      if (event === 'init') {
+        setTimeout(() => callback({
+          email: 'apercu@haltiss.com',
+          user_metadata: { full_name: 'Mode apercu local' }
+        }), 0);
+      }
+    },
+    open() {},
+    close() {},
+    logout() {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+  };
+} else {
+  document.write('<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"><\/script>');
+}
+</script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
