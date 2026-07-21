@@ -894,13 +894,22 @@ async function resolveCodePostal(cp) {
       const zonesRes = await fetch(`https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population&format=json`);
       const communes = await zonesRes.json();
       if (Array.isArray(communes) && communes.length) {
-        zones = communes
-          .filter(x => x.population)
-          .sort((a, b) => b.population - a.population)
+        const withPop = communes.filter(x => x.population);
+        // Filet de sécurité : si trop peu de communes ont une population renseignée
+        // (petits départements/collectivités), on repart de la liste complète.
+        const base = withPop.length >= 2 ? withPop : communes;
+        zones = base
+          .sort((a, b) => (b.population || 0) - (a.population || 0))
           .slice(0, 15)
           .map(x => x.nom);
+        // Ultime filet : la commune elle-même si l'API n'a rien retourné d'exploitable.
+        if (!zones.length) zones = [c.nom];
+      } else {
+        zones = [c.nom];
       }
-    } catch (e) { /* zones restera vide → repli sur ZONES statiques */ }
+    } catch (e) {
+      zones = [c.nom]; // repli : au moins la commune résolue par le code postal
+    }
 
     resolvedLocation = {
       commune: c.nom,
