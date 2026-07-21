@@ -188,6 +188,25 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .location-info.pending { color: #64748b; font-style: italic; }
 .location-info.error { color: #fca5a5; background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.2); }
 
+.type-row { display: flex; gap: 8px; }
+.type-btn {
+  flex: 1;
+  padding: 9px 6px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #94a3b8;
+}
+.type-btn.active {
+  background: linear-gradient(135deg, #10b981, #22d3ee);
+  color: #022c22;
+  border-color: transparent;
+}
+
 .btn-generate {
   padding: 13px;
   background: linear-gradient(135deg, #10b981, #22d3ee);
@@ -390,6 +409,14 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 
       <div class="location-info" id="location-info"></div>
 
+      <div class="field">
+        <label>Type de client</label>
+        <div class="type-row">
+          <button class="type-btn active" data-type="B2B" onclick="selectType('B2B')">Professionnel</button>
+          <button class="type-btn" data-type="B2C" onclick="selectType('B2C')">Particulier</button>
+        </div>
+      </div>
+
       <button class="btn-generate" onclick="generer()">Générer un client</button>
     </div>
 
@@ -422,6 +449,14 @@ function showApp(user) {
 
 // ── DONNÉES ───────────────────────────────────────────────────────────────────
 const genHistory = [];
+
+let selectedType = 'B2B';
+function selectType(t) {
+  selectedType = t;
+  document.querySelectorAll('.type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === t);
+  });
+}
 
 const B2B_DEMENAGEMENT = [
   { cat:'Cabinet comptable', g:'m', size:[3,12], amountBase:[15,35], items:[
@@ -849,12 +884,29 @@ async function resolveCodePostal(cp) {
       return;
     }
     const c = pick(data);
+    const departementCode = c.codeDepartement;
+
+    // Récupère de vraies communes du département pour générer des zones cohérentes
+    let zones = [];
+    try {
+      const zonesRes = await fetch(`https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population&format=json`);
+      const communes = await zonesRes.json();
+      if (Array.isArray(communes) && communes.length) {
+        zones = communes
+          .filter(x => x.population)
+          .sort((a, b) => b.population - a.population)
+          .slice(0, 15)
+          .map(x => x.nom);
+      }
+    } catch (e) { /* zones restera vide → repli sur ZONES statiques */ }
+
     resolvedLocation = {
       commune: c.nom,
-      departementCode: c.codeDepartement,
+      departementCode,
       departementNom: c.departement?.nom || '',
       regionNom: c.region?.nom || '',
       pays: 'France',
+      zones,
     };
     resolvedFor = cp;
     renderLocationInfo('ok', resolvedLocation);
@@ -875,9 +927,11 @@ async function generer() {
   if (cp && cp !== resolvedFor) await resolveCodePostal(cp);
 
   const deptCode = (resolvedLocation && resolvedLocation.departementCode) || cp.replace(/\D/g,'').slice(0,2) || '';
-  const zones = getZones(deptCode, ville);
+  const zones = (resolvedLocation && resolvedLocation.zones && resolvedLocation.zones.length)
+    ? resolvedLocation.zones
+    : getZones(deptCode, ville);
 
-  let type = Math.random() > 0.45 ? 'B2C' : 'B2B';
+  let type = selectedType;
   let profile, cat, depart, arrivee;
 
   for (let t = 0; t < 8; t++) {
