@@ -410,6 +410,19 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 .stat-label { font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
 .stats-disclaimer { font-size: 0.72rem; color: #64748b; font-style: italic; line-height: 1.5; }
 
+.ai-context {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  background: rgba(2,6,23,0.4);
+  border-left: 3px solid #10b981;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.ai-context:empty { display: none; }
+.ai-context.pending { color: #64748b; font-style: italic; }
+
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .flag { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
 .flag.noelev { background: rgba(196,132,252,0.14); color: #c4b4ff; border: 1px solid rgba(196,132,252,0.3); }
@@ -1286,6 +1299,8 @@ function afficher(d) {
       <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
       ${flags ? `<div class="flags">${flags}</div>` : ''}
 
+      <div class="ai-context" id="ai-context"></div>
+
       <div class="section">
         <div class="section-title">1. Informations sur le client</div>
         <ul class="kv-list">${clientInfoRows.filter(Boolean).join('')}</ul>
@@ -1366,6 +1381,47 @@ function afficher(d) {
   lastFiche = d;
   document.getElementById('result').className = 'result show';
   document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  chargerContexteIA(d);
+}
+
+async function chargerContexteIA(d) {
+  const el = document.getElementById('ai-context');
+  if (!el) return;
+  el.className = 'ai-context pending';
+  el.textContent = 'Génération de la description…';
+
+  const topItems = d.items.slice(0, 4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+  const clientLabel = d.type === 'B2B' ? d.clientName : 'le client (particulier)';
+
+  try {
+    const res = await fetch('/.netlify/functions/enrich-fiche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sector: d.sector.key,
+        cat: d.cat,
+        depart: d.depart,
+        arrivee: d.arrivee,
+        dist: d.dist,
+        amount: d.amount,
+        unit: d.sector.unit,
+        delai: d.delai,
+        itemsSummary: topItems,
+        clientLabel,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.text) throw new Error(data.error || 'échec');
+
+    // Si l'agent a déjà généré une autre fiche entre-temps, on n'écrase pas l'affichage courant.
+    if (lastFiche !== d) return;
+    el.className = 'ai-context';
+    el.textContent = data.text;
+  } catch (e) {
+    if (lastFiche !== d) return;
+    el.className = 'ai-context';
+    el.textContent = '';
+  }
 }
 
 function copier() {
