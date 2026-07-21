@@ -650,7 +650,7 @@ const B2C_DEMENAGEMENT = [
     {n:'Armoire',q:[1,2],f:false},{n:'TV',q:[1,1],f:true},
     {n:'Cartons vaisselle',q:[3,8],f:true},{n:'Cartons effets personnels',q:[5,15],f:false},
   ]},
-  { cat:'Déménagement urgent', amount:[10,35], extra:['Intervention sous 48h'], items:[
+  { cat:'Déménagement urgent', amount:[10,35], items:[
     {n:'Lit',q:[1,2],f:false},{n:'Armoire',q:[1,2],f:false},
     {n:'Canapé',q:[1,1],f:false},{n:'Cartons non triés',q:[10,25],f:false},
   ]},
@@ -677,7 +677,6 @@ const CONTRAINTES_DEMENAGEMENT = [
   'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
   'Monte-meuble probablement nécessaire',
   'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
-  'Intervention le vendredi soir','Reprise d\'activité lundi — livraison vendredi impérative',
   'Matériel informatique à sécuriser',
 ];
 
@@ -756,7 +755,7 @@ const B2C_NETTOYAGE = [
     {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,6],f:false},
     {n:'Nettoyage des placards',q:[2,6],f:false},
   ]},
-  { cat:'Remise en état — départ locataire', amount:[30,70], extra:['Restitution des clés sous délai court'], items:[
+  { cat:'Remise en état — départ locataire', amount:[30,70], extra:['Restitution des clés au gardien ou à l\'agence'], items:[
     {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,2],f:false},
     {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,5],f:false},
   ]},
@@ -769,7 +768,7 @@ const B2C_NETTOYAGE = [
     {n:'Nettoyage sanitaires',q:[2,4],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
     {n:'Vitres',q:[6,14],f:false},
   ]},
-  { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], extra:['Intervention rapide nécessaire'], items:[
+  { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], extra:['Zone humide à traiter avec précaution'], items:[
     {n:'Extraction eau / humidité',q:[1,1],f:false},{n:'Nettoyage des sols',q:[3,8],f:false},
     {n:'Désinfection',q:[2,5],f:false},{n:'Nettoyage du mobilier touché',q:[2,6],f:false},
   ]},
