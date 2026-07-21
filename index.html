@@ -108,9 +108,182 @@ header img { height: 36px; }
 
 /* ── MAIN ── */
 main {
-  max-width: 680px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: 32px 16px 48px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 680px) minmax(280px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+
+.generator-column { min-width: 0; }
+
+.side-panel {
+  position: sticky;
+  top: 78px;
+  background: #ffffff;
+  border: 2px solid #2d9b5f;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(26,107,66,0.14);
+  overflow: hidden;
+}
+
+.side-panel::before {
+  content: "";
+  display: block;
+  height: 6px;
+  margin: -18px -18px 16px;
+  background: linear-gradient(90deg, #1a6b42, #2d9b5f, #111827);
+}
+
+.side-kicker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #2d9b5f;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+
+.side-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a3d2a;
+  margin-bottom: 6px;
+}
+
+.side-copy {
+  font-size: 0.82rem;
+  color: #66756c;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.flow-card {
+  background: #f4fbf7;
+  border: 1px solid #dceee4;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  position: relative;
+}
+
+.flow-step + .flow-step { margin-top: 16px; }
+.flow-step + .flow-step::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: -16px;
+  width: 2px;
+  height: 16px;
+  background: #cfe7d8;
+}
+
+.flow-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border: 1.5px solid #b9dcc7;
+  color: #1a6b42;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.flow-step.active .flow-dot {
+  background: #1a6b42;
+  border-color: #1a6b42;
+  color: #ffffff;
+}
+
+.flow-label {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #1a3d2a;
+}
+
+.flow-text {
+  font-size: 0.76rem;
+  color: #789383;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.offer-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.offer-preview-item {
+  border: 1px solid #dceee4;
+  border-radius: 9px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.offer-preview-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.offer-preview-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1a3d2a;
+}
+
+.offer-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 99px;
+  padding: 3px 7px;
+  background: #e0f2fe;
+  color: #0369a1;
+  white-space: nowrap;
+}
+
+.offer-pill.pending {
+  background: #fff8e6;
+  color: #92400e;
+}
+
+.offer-preview-text {
+  font-size: 0.75rem;
+  color: #789383;
+  line-height: 1.4;
+}
+
+.payment-status {
+  margin-top: 14px;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff8e6;
+  border: 1px solid #fde68a;
+  color: #7c4a03;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.payment-status strong {
+  display: block;
+  color: #5f3900;
+  margin-bottom: 3px;
 }
 
 .page-title {
@@ -152,6 +325,11 @@ input {
   background: #fafffe;
 }
 input:focus { border-color: #1a6b42; background: white; }
+.hint {
+  font-size: 0.74rem;
+  color: #789383;
+  margin-top: 2px;
+}
 
 .type-row { display: flex; gap: 8px; }
 .type-btn {
@@ -284,6 +462,12 @@ input:focus { border-color: #1a6b42; background: white; }
 .flag.noelev { background: #f3e8ff; color: #7c3aed; }
 
 .actions { display: flex; gap: 8px; margin-top: 18px; }
+.offer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
 .btn-copy {
   flex: 1;
   padding: 10px;
@@ -297,7 +481,8 @@ input:focus { border-color: #1a6b42; background: white; }
   transition: all 0.15s;
 }
 .btn-copy:hover { background: #f4fbf7; border-color: #1a6b42; }
-.btn-new {
+.btn-new,
+.btn-offer {
   flex: 1;
   padding: 10px;
   border: none;
@@ -309,12 +494,35 @@ input:focus { border-color: #1a6b42; background: white; }
   color: white;
   transition: opacity 0.15s;
 }
-.btn-new:hover { opacity: 0.9; }
+.btn-new:hover,
+.btn-offer:hover { opacity: 0.9; }
+.btn-offer.free {
+  background: #ffffff;
+  color: #1a6b42;
+  border: 1.5px solid #1a6b42;
+}
+.btn-offer.free:hover { background: #f4fbf7; }
+.btn-offer.paid { background: linear-gradient(135deg, #111827, #1a6b42); }
+.tracking-note {
+  font-size: 0.75rem;
+  color: #789383;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .workspace { grid-template-columns: 1fr; }
+  .side-panel {
+    position: static;
+    order: -1;
+  }
+}
 
 @media (max-width: 500px) {
   .items-grid { grid-template-columns: 1fr; }
   .budget-bar { flex-direction: column; }
   .type-row { flex-wrap: wrap; }
+  .offer-actions { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -341,6 +549,8 @@ input:focus { border-color: #1a6b42; background: white; }
   </header>
 
   <main>
+    <div class="workspace">
+      <div class="generator-column">
     <div class="page-title">Générateur de clients</div>
     <p class="page-sub">Renseigne la zone du prestataire et génère un profil client réaliste.</p>
 
@@ -357,6 +567,12 @@ input:focus { border-color: #1a6b42; background: white; }
       </div>
 
       <div class="field">
+        <label>Email du prestataire</label>
+        <input type="email" id="provider-email" placeholder="Ex : contact@entreprise.fr" />
+        <div class="hint">Utilise les boutons d'offre après génération pour préparer l'email et garder l'agent en copie.</div>
+      </div>
+
+      <div class="field">
         <label>Type de client</label>
         <div class="type-row">
           <button class="type-btn active" data-type="auto" onclick="selectType('auto')">Aléatoire</button>
@@ -369,6 +585,67 @@ input:focus { border-color: #1a6b42; background: white; }
     </div>
 
     <div class="result" id="result"></div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="side-kicker">Parcours partenaire</div>
+        <div class="side-title" id="visual-title">En attente d'un client</div>
+        <p class="side-copy" id="visual-copy">Genere un profil, puis choisis l'offre a envoyer au prestataire. Le paiement restera a raccorder quand le Kbis sera disponible.</p>
+
+        <div class="flow-card">
+          <div class="flow-step" id="flow-client">
+            <div class="flow-dot">1</div>
+            <div>
+              <div class="flow-label">Client genere</div>
+              <div class="flow-text">Profil, volume, budget et questions d'appel.</div>
+            </div>
+          </div>
+          <div class="flow-step" id="flow-offer">
+            <div class="flow-dot">2</div>
+            <div>
+              <div class="flow-label">Offre envoyee</div>
+              <div class="flow-text">Email prepare avec l'agent en copie.</div>
+            </div>
+          </div>
+          <div class="flow-step" id="flow-form">
+            <div class="flow-dot">3</div>
+            <div>
+              <div class="flow-label">Questionnaire</div>
+              <div class="flow-text">Le bouton Devenir partenaire garde le suivi agent/offre.</div>
+            </div>
+          </div>
+          <div class="flow-step" id="flow-payment">
+            <div class="flow-dot">4</div>
+            <div>
+              <div class="flow-label">Paiement ou mandat</div>
+              <div class="flow-text">Page provisoire, branchement Stripe/SEPA plus tard.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="offer-preview">
+          <div class="offer-preview-item">
+            <div class="offer-preview-top">
+              <div class="offer-preview-name">Offre Free</div>
+              <span class="offer-pill pending">Mandat plus tard</span>
+            </div>
+            <div class="offer-preview-text">Redirection vers la page de mandat de prelevement automatique provisoire.</div>
+          </div>
+          <div class="offer-preview-item">
+            <div class="offer-preview-top">
+              <div class="offer-preview-name">Offre Participation</div>
+              <span class="offer-pill pending">Stripe plus tard</span>
+            </div>
+            <div class="offer-preview-text">Redirection vers la page paiement provisoire, a raccorder apres reception du Kbis.</div>
+          </div>
+        </div>
+
+        <div class="payment-status">
+          <strong>Paiement non raccorde</strong>
+          Le parcours est pret, mais aucun paiement reel n'est declenche pour l'instant.
+        </div>
+      </aside>
+    </div>
   </main>
 </div>
 
@@ -389,6 +666,7 @@ netlifyIdentity.on('logout', () => {
 });
 
 function showApp(user) {
+  currentUser = user;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   const name = user.user_metadata?.full_name || user.email;
@@ -398,6 +676,23 @@ function showApp(user) {
 // ── DONNÉES ───────────────────────────────────────────────────────────────────
 let selectedType = 'auto';
 const genHistory = [];
+let currentUser = null;
+let currentClient = null;
+
+const OFFERS = {
+  free: {
+    label: 'Offre Free',
+    file: 'brochures/offre-free.html',
+    subject: 'Votre offre Free Haltiss',
+    intro: 'Voici la brochure Offre Free Haltiss.'
+  },
+  paid: {
+    label: 'Offre Participation',
+    file: 'brochures/offre-participation.html',
+    subject: 'Votre offre Participation Haltiss',
+    intro: 'Voici la brochure Offre Participation Haltiss.'
+  }
+};
 
 function selectType(t) {
   selectedType = t;
@@ -667,6 +962,8 @@ function generer() {
 }
 
 function afficher(d) {
+  currentClient = d;
+  updateVisual('client', d);
   const pl = d.type === 'B2B' ? 'HT' : 'TTC';
   const flags = [
     d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
@@ -705,6 +1002,11 @@ function afficher(d) {
       <button class="btn-copy" onclick="copier()">Copier le résumé</button>
       <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
     </div>
+    <div class="offer-actions">
+      <button class="btn-offer free" onclick="envoyerOffre('free')">Offre Free</button>
+      <button class="btn-offer paid" onclick="envoyerOffre('paid')">Offre Participation</button>
+    </div>
+    <div class="tracking-note">L'email est prepare avec l'agent en copie pour garder un accuse d'envoi. Le lien brochure contient aussi l'offre et l'agent pour faciliter le suivi.</div>
   `;
   document.getElementById('result').className = 'result show';
   document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -717,6 +1019,89 @@ function copier() {
     btn.textContent = '✓ Copié';
     setTimeout(() => btn.textContent = 'Copier le résumé', 2000);
   });
+}
+
+function getAgentEmail() {
+  return currentUser?.email || '';
+}
+
+function getAgentName() {
+  return currentUser?.user_metadata?.full_name || currentUser?.email || 'Agent Haltiss';
+}
+
+function buildOfferUrl(offerKey) {
+  const offer = OFFERS[offerKey];
+  const url = new URL(offer.file, window.location.href);
+  url.searchParams.set('offre', offerKey === 'paid' ? 'participation' : 'free');
+  url.searchParams.set('agent', getAgentEmail());
+  if (currentClient) {
+    url.searchParams.set('client', `${currentClient.cat} - ${currentClient.depart} vers ${currentClient.arrivee}`);
+  }
+  return url.toString();
+}
+
+function updateVisual(state, detail) {
+  const title = document.getElementById('visual-title');
+  const copy = document.getElementById('visual-copy');
+  const steps = ['flow-client', 'flow-offer', 'flow-form', 'flow-payment'];
+  const activeCount = state === 'offer' ? 2 : state === 'client' ? 1 : 0;
+
+  steps.forEach((id, index) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', index < activeCount);
+  });
+
+  if (!title || !copy) return;
+
+  if (state === 'client' && detail) {
+    title.textContent = `${detail.cat}`;
+    copy.textContent = `${detail.depart} vers ${detail.arrivee}. Choisis l'offre a envoyer au prestataire, puis l'email gardera l'agent en copie.`;
+    return;
+  }
+
+  if (state === 'offer' && detail) {
+    title.textContent = `${detail.offerLabel} preparee`;
+    copy.textContent = `L'email est pret pour ${detail.email}. Le paiement reste en page provisoire jusqu'au raccordement Stripe/SEPA.`;
+  }
+}
+
+function envoyerOffre(offerKey) {
+  const providerEmail = document.getElementById('provider-email').value.trim();
+  if (!providerEmail) {
+    alert('Ajoute d abord l email du prestataire.');
+    document.getElementById('provider-email').focus();
+    return;
+  }
+
+  const offer = OFFERS[offerKey];
+  const agentEmail = getAgentEmail();
+  const offerUrl = buildOfferUrl(offerKey);
+  updateVisual('offer', { offerLabel: offer.label, email: providerEmail });
+  const clientText = currentClient
+    ? `${currentClient.cat} (${currentClient.depart} vers ${currentClient.arrivee}, ${currentClient.vol} m3)`
+    : 'client qualifie Haltiss';
+  const body = [
+    'Bonjour,',
+    '',
+    offer.intro,
+    '',
+    `Lien brochure : ${offerUrl}`,
+    '',
+    'Le bouton Devenir partenaire dans la brochure vous redirigera vers le questionnaire Haltiss, puis vers l etape de paiement ou de mandat selon l offre choisie.',
+    '',
+    `Reference interne : ${clientText}`,
+    `Envoye par : ${getAgentName()}${agentEmail ? ' <' + agentEmail + '>' : ''}`,
+    '',
+    'Bien cordialement,',
+    'Haltiss'
+  ].join('\n');
+
+  const params = new URLSearchParams({
+    subject: `${offer.subject} - Haltiss`,
+    body
+  });
+  if (agentEmail) params.set('cc', agentEmail);
+  window.location.href = `mailto:${encodeURIComponent(providerEmail)}?${params.toString()}`;
 }
 
 document.addEventListener('keydown', e => {
