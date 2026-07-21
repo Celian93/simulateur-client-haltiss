@@ -264,16 +264,44 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.summary-text {
-  font-size: 0.9rem;
-  line-height: 1.65;
-  color: #cbd5e1;
-  background: rgba(2,6,23,0.4);
-  border-radius: 12px;
-  padding: 13px;
-  border-left: 3px solid #10b981;
+.fiche-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #6ee7b7;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.summary-text b { color: #f1f5f9; }
+
+.kv-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.kv-list li {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  padding: 7px 11px;
+  background: rgba(2,6,23,0.4);
+  border-radius: 10px;
+}
+.kv-list li b { color: #f1f5f9; font-weight: 600; }
+
+.address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+.address-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.item-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 10px 0 6px;
+}
+.item-group-label:first-child { margin-top: 0; }
 
 .items-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .item-row {
@@ -351,6 +379,7 @@ input[readonly]:focus { border-color: rgba(255,255,255,0.1); }
 @media (max-width: 500px) {
   .items-grid { grid-template-columns: 1fr; }
   .budget-bar { flex-direction: column; }
+  .address-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -515,6 +544,15 @@ const B2B_DEMENAGEMENT = [
     {n:'Rayonnage pharmacie',q:[6,18],f:false},{n:'Comptoir d\'accueil',q:[1,2],f:false},
     {n:'Réfrigérateur médicaments',q:[1,3],f:true},{n:'Stock médicaments (cartons)',q:[30,80],f:true},
     {n:'Présentoir parapharmacie',q:[4,12],f:false},{n:'Ordinateur + TPE',q:[2,4],f:true},
+  ]},
+  { cat:'Cabinet d\'avocats', g:'m', size:[3,15], amountBase:[18,45], items:[
+    {n:'Bureau professionnel',qpp:1,f:false},{n:'Fauteuil ergonomique',qpp:1,f:false},
+    {n:'Caisson de bureau',qpp:1,f:false},{n:'Armoire métallique',q:[1,3],f:false},
+    {n:'Bibliothèque',q:[1,2],f:false},{n:'Table de réunion',q:[1,1],f:false},
+    {n:'Chaise de réunion',q:[4,8],f:false},{n:'Ordinateur fixe',q:[2,8],f:true},
+    {n:'Écran',q:[2,8],f:true},{n:'Imprimante multifonction',q:[1,2],f:true},
+    {n:'Destructeur de documents',q:[1,2],f:true},{n:'Cartons de dossiers juridiques',q:[20,50],f:false},
+    {n:'Cartons de fournitures administratives',q:[5,15],f:false},
   ]},
 ];
 
@@ -717,13 +755,6 @@ const Q_B2C_NETTOYAGE = [
   'Avez-vous besoin d\'une visite préalable ?','Travaillez-vous aussi le week-end ?',
 ];
 
-function person(cat) {
-  if (cat.startsWith('Fam')) return 'Une famille';
-  if (cat.startsWith('Couple')) return 'Un couple';
-  if (cat.startsWith('Per')) return 'Une personne âgée';
-  return 'Le client';
-}
-
 const SECTORS = {
   demenagement: {
     label: 'Déménagement',
@@ -737,15 +768,15 @@ const SECTORS = {
     questionsB2B: Q_B2B_DEMENAGEMENT,
     questionsB2C: Q_B2C_DEMENAGEMENT,
     contraintes: CONTRAINTES_DEMENAGEMENT,
-    price: { base: 350, unitRate: 28, distRate: 2.5, workerRate: 65, urgentMult: 1.25, weekendMult: 1.20 },
+    price: { base: 350, unitRate: 28, distRate: 2.5, workerRate: 65, urgentMult: 1.25, weekendMult: 1.20, floor: 250 },
     workers: amount => amount < 20 ? 2 : amount < 45 ? rand(2, 3) : rand(3, 5),
     duration: (amount, dist) => Math.max(2, Math.round(amount / 8 + dist / 30)),
-    summaryB2B(cat, g, sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
-      return `Un${g === 'f' ? 'e' : ''} <b>${cat.toLowerCase()}${sizeStr}</b> prévoit de transférer ses locaux de <b>${depart}</b> vers <b>${arrivee}</b>, soit environ ${dist} km. Le besoin comprend notamment : ${topItems}. Volume estimé : <b>${amount} m³</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${priceTarget.toLocaleString('fr-FR')} € HT</b>.`;
-    },
-    summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
-      return `${person(cat)} (<b>${cat.toLowerCase()}</b>) souhaite déménager de <b>${depart}</b> vers <b>${arrivee}</b> (environ ${dist} km). Éléments : ${topItems}. Volume estimé : <b>${amount} m³</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${priceTarget.toLocaleString('fr-FR')} € TTC</b>.`;
-    },
+    categorize: categorizeItemDemenagement,
+    categoryOrder: ['Mobilier', 'Informatique', 'Cartons / Archives'],
+    equipment: amount => recommendTruck(amount),
+    equipmentLabel: 'Camion recommandé',
+    prestationsExtra: items => prestationsDemenagement(items),
+    addressNoun: 'le déménagement',
   },
   nettoyage: {
     label: 'Nettoyage',
@@ -759,15 +790,15 @@ const SECTORS = {
     questionsB2B: Q_B2B_NETTOYAGE,
     questionsB2C: Q_B2C_NETTOYAGE,
     contraintes: CONTRAINTES_NETTOYAGE,
-    price: { base: 90, unitRate: 3.2, distRate: 2, workerRate: 26, urgentMult: 1.20, weekendMult: 1.15 },
+    price: { base: 90, unitRate: 3.2, distRate: 2, workerRate: 26, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
     workers: amount => amount < 60 ? rand(1, 2) : amount < 180 ? rand(2, 3) : rand(3, 4),
     duration: (amount, dist) => Math.max(2, Math.round(amount / 25 + dist / 40)),
-    summaryB2B(cat, g, sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
-      return `Un site de type <b>${cat.toLowerCase()}${sizeStr}</b> à <b>${depart}</b> recherche un prestataire de nettoyage pour son site de <b>${arrivee}</b> (~${dist} km). Prestations attendues : ${topItems}. Surface estimée : <b>${amount} m²</b>. Intervention souhaitée <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible estimé : <b>${priceTarget.toLocaleString('fr-FR')} € HT</b>.`;
-    },
-    summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, priceTarget) {
-      return `${person(cat)} (<b>${cat.toLowerCase()}</b>) recherche un service de nettoyage à <b>${arrivee}</b> (déplacement depuis ${depart}, ~${dist} km). Prestations : ${topItems}. Surface estimée : <b>${amount} m²</b>. Souhaite intervenir <b>${delai}</b>. Client joignable <b>${dispo}</b>. Budget cible : <b>${priceTarget.toLocaleString('fr-FR')} € TTC</b>.`;
-    },
+    categorize: categorizeItemNettoyage,
+    categoryOrder: ['Sols', 'Sanitaires', 'Vitres', 'Cuisine', 'Autres prestations'],
+    equipment: () => 'Monobrosse, aspirateur professionnel, chariot de ménage, produits adaptés aux surfaces à traiter',
+    equipmentLabel: 'Matériel recommandé',
+    prestationsExtra: () => prestationsNettoyageComplement(),
+    addressNoun: 'la prestation',
   },
 };
 
@@ -802,6 +833,125 @@ const DELAIS = [
   'dans le mois','d\'ici 3 semaines','dans 6 semaines','pour début du mois prochain',
 ];
 
+// ── FICHE CLIENT : données de mise en situation ────────────────────────────────
+const QUARTIERS = [
+  'Centre-Ville','Le Clos','Les Jardins','La Gare','Le Vieux Bourg','Les Tilleuls',
+  'Le Parc','La Résidence','Le Bourg','Les Vignes','Le Clos Fleuri','La Prairie',
+  'Les Acacias','Le Moulin','Belle-Vue',
+];
+
+const STATIONNEMENTS = [
+  'Place réservée devant l\'immeuble','Stationnement payant à proximité',
+  'Zone de stationnement autorisée pour camion','Accès poids lourd autorisé',
+  'Parking souterrain — hauteur limitée','Stationnement libre dans la rue',
+  'Autorisation de stationnement à demander en mairie',
+];
+
+const PRENOMS_M = ['Jean','Pierre','Nicolas','Julien','Thomas','Laurent','Antoine','Vincent'];
+const PRENOMS_F = ['Marie','Sophie','Camille','Claire','Émilie','Nathalie','Sarah','Aurélie'];
+
+const NOMS = [
+  'Dupont','Martin','Bernard','Lefebvre','Moreau','Girard','Roux','Fontaine',
+  'Chevalier','Robin','Masson','Perrot','Fournier','Faure','Blanc','Muller',
+  'Henry','Roussel','Perrin','Morin','Mathieu','Gauthier','Dumont','Marchand','Renard',
+];
+
+const COMPANY_TEMPLATES = {
+  'Cabinet comptable': () => `Cabinet ${pick(NOMS)} & ${pick(NOMS)}`,
+  'Cabinet comptable / juridique': () => `Cabinet ${pick(NOMS)} & ${pick(NOMS)}`,
+  'Cabinet médical': () => `Cabinet médical Dr ${pick(NOMS)}`,
+  'Cabinet d\'avocats': () => `Cabinet ${pick(NOMS)} & Associés`,
+  'Agence immobilière': () => `Agence ${pick(NOMS)} Immobilier`,
+  'Agence de communication': () => `Studio ${pick(NOMS)}`,
+  'Entreprise informatique': () => `${pick(NOMS)} Technologies`,
+  'Commerce de détail': () => `${pick(NOMS)} & Fils`,
+  'Commerce / boutique': () => `Boutique ${pick(NOMS)}`,
+  'Restaurant': () => `Restaurant ${pick(NOMS)}`,
+  'Restaurant / cuisine professionnelle': () => `Restaurant ${pick(NOMS)}`,
+  'Étude notariale': () => `Étude ${pick(NOMS)} & ${pick(NOMS)}`,
+  'Organisme de formation': () => `${pick(NOMS)} Formation`,
+  'Établissement scolaire / formation': () => `${pick(NOMS)} Formation`,
+  'Pharmacie': () => `Pharmacie ${pick(NOMS)}`,
+  'Bureaux / open space': () => `${pick(NOMS)} & Associés`,
+  'Copropriété — parties communes': () => `Copropriété ${pick(NOMS)}`,
+  'Salle de sport': () => `${pick(NOMS)} Fitness`,
+  'Entrepôt / locaux industriels': () => `${pick(NOMS)} Logistique`,
+  'Résidence hôtelière / Airbnb': () => `Résidence ${pick(NOMS)}`,
+};
+
+function generateCompanyName(cat) {
+  const tpl = COMPANY_TEMPLATES[cat];
+  return tpl ? tpl() : `${pick(NOMS)} ${cat}`;
+}
+
+function generateClientName() {
+  const isM = Math.random() > 0.5;
+  const civilite = isM ? 'M.' : 'Mme';
+  const prenom = pick(isM ? PRENOMS_M : PRENOMS_F);
+  return `${civilite} ${prenom} ${pick(NOMS)}`;
+}
+
+function fakePostalCode(depCode) {
+  if (!depCode) return '';
+  if (depCode === '2A' || depCode === '2B') return '20' + String(rand(0, 999)).padStart(3, '0');
+  if (depCode.length === 3) return depCode + String(rand(0, 99)).padStart(2, '0');
+  return depCode.padStart(2, '0') + String(rand(0, 999)).padStart(3, '0');
+}
+
+function formatDuration(h) {
+  if (h <= 4) return `Demi-journée (environ ${h}h)`;
+  if (h <= 8) return `Une journée (${h} à ${h + 1}h)`;
+  const days = Math.ceil(h / 8);
+  return `${days} jours (environ ${h}h au total)`;
+}
+
+function recommendTruck(amount) {
+  if (amount <= 12) return 'Camion 12 m³';
+  if (amount <= 20) return 'Camion 20 m³ avec hayon';
+  if (amount <= 30) return 'Camion 20 à 30 m³ avec hayon';
+  if (amount <= 45) return '2 camions de 20 m³, ou 1 camion de 30 à 40 m³ avec hayon';
+  return 'Poids lourd 40 m³ ou plus avec hayon (ou plusieurs rotations)';
+}
+
+function categorizeItemDemenagement(name) {
+  if (/ordinateur|écran|serveur|onduleur|imprimante|informatique|tpe|caisse enregistreuse|destructeur|tablette|vidéoprojecteur/i.test(name)) return 'Informatique';
+  if (/carton|archive|dossier/i.test(name)) return 'Cartons / Archives';
+  return 'Mobilier';
+}
+
+function categorizeItemNettoyage(name) {
+  if (/sol|moquette|tapis/i.test(name)) return 'Sols';
+  if (/sanitaire|douche|vestiaire/i.test(name)) return 'Sanitaires';
+  if (/vitre|vitrine/i.test(name)) return 'Vitres';
+  if (/cuisine|hotte/i.test(name)) return 'Cuisine';
+  return 'Autres prestations';
+}
+
+function prestationsDemenagement(items) {
+  const hasFragile = items.some(i => i.f);
+  const list = ['Protection du mobilier', 'Démontage du mobilier'];
+  if (hasFragile) list.push('Emballage des équipements fragiles');
+  list.push('Chargement', 'Transport', 'Déchargement', 'Remontage du mobilier', 'Installation dans les nouveaux locaux');
+  if (hasFragile) list.push('Déballage des équipements');
+  list.push('Évacuation des cartons et emballages');
+  return list;
+}
+
+function prestationsNettoyageComplement() {
+  return [
+    'Vérification des zones sensibles avant intervention','Utilisation de produits adaptés aux surfaces',
+    'Contrôle qualité en fin de prestation','Évacuation des déchets et emballages',
+    'Aération des locaux après intervention',
+  ];
+}
+
+function contraintesDerivees(items) {
+  const extra = [];
+  if (items.some(i => i.f)) extra.push('Le matériel fragile doit être manipulé avec précaution.');
+  if (items.some(i => /archive|dossier/i.test(i.n))) extra.push('Les documents et archives sont confidentiels.');
+  return extra;
+}
+
 // ── UTILITAIRES ───────────────────────────────────────────────────────────────
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -822,7 +972,8 @@ function computePrice(sector, amount, dist, workers, duration, floor, elevator, 
   if (!elevator && floor > 0) base += floor * 30;
   if (urgent) base *= p.urgentMult;
   if (weekend) base *= p.weekendMult;
-  base *= (1 + Math.random() * 0.25);
+  base *= (1 + Math.random() * 0.2);
+  base = Math.max(base, p.floor);
   const target = Math.round(base / 50) * 50;
   return { min: Math.round(target * 0.85 / 50) * 50, target, max: Math.round(target * 1.25 / 50) * 50 };
 }
@@ -982,24 +1133,37 @@ async function generer() {
   const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
   const weekend = Math.random() > 0.78;
   const dist = rand(3, 35);
-  const floor = rand(0, 5);
-  const elevator = Math.random() > 0.4;
+
+  // Adresses de départ et d'arrivée (distinctes l'une de l'autre)
+  const departFloor = rand(0, 5);
+  const arriveeFloor = rand(0, 5);
+  const departElevator = Math.random() > 0.4;
+  const arriveeElevator = Math.random() > 0.4;
+  const departParking = pick(STATIONNEMENTS);
+  const arriveeParking = pick(STATIONNEMENTS.filter(s => s !== departParking)) || STATIONNEMENTS[0];
+  const departQuartier = pick(QUARTIERS);
+  const arriveeQuartier = pick(QUARTIERS.filter(q => q !== departQuartier)) || QUARTIERS[0];
+  const departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+  const arriveeCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+
+  // Le prix tient compte de la difficulté d'accès à l'arrivée (portage le plus contraignant)
   const workers = sector.workers(amount);
   const duration = sector.duration(amount, dist);
-  const price = computePrice(sector, amount, dist, workers, duration, floor, elevator, urgent, weekend);
+  const price = computePrice(sector, amount, dist, workers, duration, arriveeFloor, arriveeElevator, urgent, weekend);
   const questions = pickN(type === 'B2B' ? sector.questionsB2B : sector.questionsB2C, 5);
 
-  const topItems = items.slice(0,4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
-  let summary;
-  if (type === 'B2B') {
-    const unit = profile.sizeUnit || 'collaborateur';
-    const sizeStr = size ? ` de ${size} ${unit}${size > 1 ? 's' : ''}` : '';
-    summary = sector.summaryB2B(cat, profile.g || 'm', sizeStr, depart, arrivee, dist, topItems, amount, delai, dispo, price.target);
-  } else {
-    summary = sector.summaryB2C(cat, depart, arrivee, dist, topItems, amount, delai, dispo, price.target);
-  }
+  const clientName = type === 'B2B' ? generateCompanyName(cat) : generateClientName();
+  const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
+  const prestationsExtra = sector.prestationsExtra(items);
 
-  afficher({ sector, type, cat, depart, arrivee, dist, items, amount, constraints, delai, dispo, workers, duration, floor, elevator, price, questions, summary, urgent, weekend });
+  afficher({
+    sector, type, cat, depart, arrivee, dist, items, amount, size,
+    constraints: derivedConstraints, delai, dispo, workers, duration, price, questions,
+    urgent, weekend, clientName,
+    departFloor, arriveeFloor, departElevator, arriveeElevator,
+    departParking, arriveeParking, departQuartier, arriveeQuartier, departCp, arriveeCp,
+    prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
+  });
 }
 
 function afficher(d) {
@@ -1009,37 +1173,116 @@ function afficher(d) {
     d.urgent ? '<span class="flag urgent">⚡ Urgent</span>' : '',
     `<span class="flag" style="background:#e0f2fe;color:#0369a1">📞 Joignable ${d.dispo}</span>`,
     d.weekend ? '<span class="flag weekend">📅 Week-end</span>' : '',
-    (!d.elevator && d.floor > 0) ? `<span class="flag noelev">🏢 Étage ${d.floor} sans ascenseur</span>` : '',
+    (!d.arriveeElevator && d.arriveeFloor > 0) ? `<span class="flag noelev">🏢 Étage ${d.arriveeFloor} sans ascenseur</span>` : '',
   ].filter(Boolean).join('');
 
+  const ficheTitle = `Fiche client – Demande de ${d.sector.label.toLowerCase()} ${d.type === 'B2B' ? 'professionnel' : 'particulier'}`;
+
+  // Section 1 : informations sur le client
+  const clientInfoRows = d.type === 'B2B'
+    ? [
+        `<li><b>Entreprise :</b> ${d.clientName}</li>`,
+        `<li><b>Activité :</b> ${d.cat}</li>`,
+        d.size ? `<li><b>Nombre de ${d.sizeUnit}s :</b> ${d.size}</li>` : '',
+      ]
+    : [
+        `<li><b>Client :</b> ${d.clientName}</li>`,
+        `<li><b>Profil :</b> ${d.cat}</li>`,
+      ];
+
+  // Section 2 : adresses et informations logistiques
+  const addressBlock = (label, ville, cp, quartier, floor, elevator, parking) => `
+    <div class="address-block">
+      <div class="address-label">${label}</div>
+      <ul class="kv-list">
+        <li><b>Ville :</b> ${ville}${cp ? ` (${cp})` : ''}</li>
+        <li><b>Quartier :</b> ${quartier}</li>
+        <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : `${floor}ᵉ étage`}</li>
+        <li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>
+        <li><b>Stationnement :</b> ${parking}</li>
+      </ul>
+    </div>`;
+
+  // Section 3 : matériel/prestations, regroupés par catégorie
+  const groups = {};
+  d.items.forEach(i => {
+    const cat = d.sector.categorize(i.n);
+    (groups[cat] = groups[cat] || []).push(i);
+  });
+  const itemsHtml = d.sector.categoryOrder
+    .filter(cat => groups[cat] && groups[cat].length)
+    .map(cat => `
+      <div class="item-group-label">${cat}</div>
+      <ul class="kv-list">${groups[cat].map(i => `<li>${i.q} ${i.n.toLowerCase()}${i.f ? '<span class="fragile">fragile</span>' : ''}</li>`).join('')}</ul>
+    `).join('');
+
   document.getElementById('result').innerHTML = `
-    <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
-    <div class="result-title">${d.cat}</div>
-    <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
-    ${flags ? `<div class="flags">${flags}</div>` : ''}
-    <div class="section">
-      <div class="section-title">Résumé</div>
-      <div class="summary-text">${d.summary}</div>
-    </div>
-    <div class="section">
-      <div class="section-title">${d.sector.itemsTitle}</div>
-      <div class="items-grid">${d.items.map(i => `<div class="item-row"><span>${i.n}${i.f ? '<span class="fragile">fragile</span>' : ''}</span><span class="item-qty">×${i.q}</span></div>`).join('')}</div>
-    </div>
-    ${d.constraints.length ? `<div class="section"><div class="section-title">Contraintes</div><div class="tags">${d.constraints.map(c => `<span class="tag">${c}</span>`).join('')}</div></div>` : ''}
-    <div class="section">
-      <div class="section-title">Budget estimé</div>
-      <div class="budget-bar">
-        <div class="budget-item"><div class="budget-label">Minimum</div><div class="budget-value">${d.price.min.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
-        <div class="budget-item main"><div class="budget-label">Cible</div><div class="budget-value">${d.price.target.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
-        <div class="budget-item"><div class="budget-label">Maximum</div><div class="budget-value">${d.price.max.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+    <div class="fiche-content">
+      <div class="fiche-title">${ficheTitle}</div>
+      <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
+      <div class="result-title">${d.cat}</div>
+      <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
+      ${flags ? `<div class="flags">${flags}</div>` : ''}
+
+      <div class="section">
+        <div class="section-title">1. Informations sur le client</div>
+        <ul class="kv-list">${clientInfoRows.filter(Boolean).join('')}</ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title">2. Informations sur ${d.sector.addressNoun}</div>
+        <div class="address-grid">
+          ${addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator, d.departParking)}
+          ${addressBlock('Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator, d.arriveeParking)}
+        </div>
+        <ul class="kv-list">
+          <li><b>Distance entre les deux sites :</b> ~${d.dist} km</li>
+          <li><b>Date souhaitée :</b> ${d.delai}</li>
+          <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title">3. ${d.sector.itemsTitle}</div>
+        ${itemsHtml}
+      </div>
+
+      <div class="section">
+        <div class="section-title">4. Prestations demandées</div>
+        <ul class="kv-list">${d.prestationsExtra.map(p => `<li>${p}</li>`).join('')}</ul>
+      </div>
+
+      ${d.constraints.length ? `
+      <div class="section">
+        <div class="section-title">5. Contraintes particulières</div>
+        <div class="tags">${d.constraints.map(c => `<span class="tag">${c}</span>`).join('')}</div>
+      </div>` : ''}
+
+      <div class="section">
+        <div class="section-title">6. Informations utiles pour le prestataire</div>
+        <ul class="kv-list">
+          <li><b>Nombre de ${role} conseillé :</b> ${d.workers}</li>
+          <li><b>${d.sector.equipmentLabel} :</b> ${d.sector.equipment(d.amount)}</li>
+          <li><b>Durée estimée de l'intervention :</b> ${formatDuration(d.duration)}</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title">7. Budget du client</div>
+        <div class="budget-bar">
+          <div class="budget-item"><div class="budget-label">Minimum</div><div class="budget-value">${d.price.min.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+          <div class="budget-item main"><div class="budget-label">Cible</div><div class="budget-value">${d.price.target.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+          <div class="budget-item"><div class="budget-label">Maximum</div><div class="budget-value">${d.price.max.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${pl}</span></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Questions à poser</div>
+        <ul class="questions-list">${d.questions.map((q,i) => `<li><span class="q-num">${i+1}.</span>${q}</li>`).join('')}</ul>
       </div>
     </div>
-    <div class="section">
-      <div class="section-title">Questions à poser</div>
-      <ul class="questions-list">${d.questions.map((q,i) => `<li><span class="q-num">${i+1}.</span>${q}</li>`).join('')}</ul>
-    </div>
     <div class="actions">
-      <button class="btn-copy" onclick="copier()">Copier le résumé</button>
+      <button class="btn-copy" onclick="copier()">Copier la fiche</button>
       <button class="btn-new" onclick="generer()">Nouveau client ↻</button>
     </div>
   `;
@@ -1048,11 +1291,11 @@ function afficher(d) {
 }
 
 function copier() {
-  const text = document.querySelector('.summary-text')?.innerText || '';
+  const text = document.querySelector('.fiche-content')?.innerText || '';
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.btn-copy');
     btn.textContent = '✓ Copié';
-    setTimeout(() => btn.textContent = 'Copier le résumé', 2000);
+    setTimeout(() => btn.textContent = 'Copier la fiche', 2000);
   });
 }
 
