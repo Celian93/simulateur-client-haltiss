@@ -1930,7 +1930,7 @@ function afficher(d) {
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
           ${d.sector.key === 'nettoyage' && d.duration && !d.pricingModeM2 ? `<li><b>Durée estimée par passage :</b> ${formatHeures(d.duration)}</li>` : ''}
           ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>
-          <li><b>Volume mensuel estimé :</b> ~${d.passagesParMois} passages, ~${formatHeures(d.heuresMensuellesVal)}/mois</li>` : ''}
+          <li><b>Volume mensuel estimé :</b> environ ${d.passagesParMois} passages sur le mois, pour un total d'environ ${formatHeures(d.heuresMensuellesVal)} de prestation</li>` : ''}
         </ul>
       </div>
 

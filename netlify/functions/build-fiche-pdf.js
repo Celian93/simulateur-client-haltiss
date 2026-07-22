@@ -93,7 +93,7 @@ async function buildFichePdf(fiche) {
     if (fiche.sectorKey === 'nettoyage' && !fiche.pricingModeM2) line(doc, 'Durée estimée par passage', fiche.duration);
     if (fiche.frequency) {
       line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
-      line(doc, 'Volume mensuel estimé', `~${fiche.passagesParMois} passages, ~${formatHeures(fiche.heuresMensuellesVal)}/mois`);
+      line(doc, 'Volume mensuel estimé', `environ ${fiche.passagesParMois} passages sur le mois, pour un total d'environ ${formatHeures(fiche.heuresMensuellesVal)} de prestation`);
     }
 
     // 3. Matériel / prestations
