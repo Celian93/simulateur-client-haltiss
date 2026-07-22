@@ -1,11 +1,18 @@
 // Envoie au prestataire un e-mail de réservation, avec un contenu varié et
 // adapté à son secteur d'activité (déménagement ou nettoyage), depuis la boîte
-// Zoho Mail du réseau Haltiss (support@haltiss.com). Nécessite les variables
-// d'environnement ZOHO_EMAIL et ZOHO_APP_PASSWORD (mot de passe d'application
-// généré dans Zoho Mail, pas le mot de passe principal du compte).
+// Zoho Mail du réseau Haltiss.
+//
+// Utilise l'API REST Zoho Mail (OAuth2) plutôt que SMTP : le plan Zoho de ce
+// compte bloque l'accès POP/IMAP/SMTP externe (restriction de plan, pas un
+// problème d'identifiants), mais l'API REST d'envoi n'est pas soumise à cette
+// restriction. Nécessite les variables d'environnement ZOHO_CLIENT_ID,
+// ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN (générés via api-console.zoho.eu,
+// type "Self Client"), ZOHO_ACCOUNT_ID et ZOHO_EMAIL (adresse d'envoi).
 
-const nodemailer = require('nodemailer');
 const { OFFRE_FREE_HTML_B64, OFFRE_PARTICIPATION_HTML_B64 } = require('./brochures');
+
+const ZOHO_ACCOUNTS_BASE = 'https://accounts.zoho.eu';
+const ZOHO_MAIL_API_BASE = 'https://mail.zoho.eu';
 
 const OFFERS = {
   free: {
@@ -108,6 +115,58 @@ L'équipe Haltiss`,
   },
 ];
 
+async function getAccessToken() {
+  const res = await fetch(`${ZOHO_ACCOUNTS_BASE}/oauth/v2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: process.env.ZOHO_CLIENT_ID,
+      client_secret: process.env.ZOHO_CLIENT_SECRET,
+      refresh_token: process.env.ZOHO_REFRESH_TOKEN,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) {
+    throw new Error(data.error || 'Impossible d\'obtenir un jeton d\'accès Zoho');
+  }
+  return data.access_token;
+}
+
+async function uploadAttachment(accountId, accessToken, filename, base64Content) {
+  const buffer = Buffer.from(base64Content, 'base64');
+  const url = `${ZOHO_MAIL_API_BASE}/api/accounts/${accountId}/messages/attachments?fileName=${encodeURIComponent(filename)}&isInline=false`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+      'Content-Type': 'application/octet-stream',
+    },
+    body: buffer,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.data) {
+    throw new Error(data.error?.errorMessage || 'Échec de l\'envoi de la pièce jointe à Zoho');
+  }
+  return data.data;
+}
+
+async function sendMessage(accountId, accessToken, message) {
+  const res = await fetch(`${ZOHO_MAIL_API_BASE}/api/accounts/${accountId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(message),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error?.errorMessage || 'Échec de l\'envoi du message via Zoho');
+  }
+  return data;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -128,8 +187,8 @@ exports.handler = async (event) => {
   if (!selectedOffer) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Offre invalide (attendu "free" ou "participation")' }) };
   }
-  if (!process.env.ZOHO_EMAIL || !process.env.ZOHO_APP_PASSWORD) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'ZOHO_EMAIL / ZOHO_APP_PASSWORD manquants' }) };
+  if (!process.env.ZOHO_CLIENT_ID || !process.env.ZOHO_CLIENT_SECRET || !process.env.ZOHO_REFRESH_TOKEN || !process.env.ZOHO_ACCOUNT_ID || !process.env.ZOHO_EMAIL) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Configuration Zoho incomplète (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN / ZOHO_ACCOUNT_ID / ZOHO_EMAIL)' }) };
   }
 
   const templates = sector === 'nettoyage' ? TEMPLATES_NETTOYAGE : TEMPLATES_DEMENAGEMENT;
@@ -145,31 +204,27 @@ exports.handler = async (event) => {
     price: Number(price || 0).toLocaleString('fr-FR'),
   };
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.ZOHO_SMTP_HOST || 'smtp.zoho.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.ZOHO_EMAIL,
-      pass: process.env.ZOHO_APP_PASSWORD,
-    },
-  });
-
   try {
-    await transporter.sendMail({
-      from: `Haltiss <${process.env.ZOHO_EMAIL}>`,
-      to: email,
+    const accessToken = await getAccessToken();
+    const accountId = process.env.ZOHO_ACCOUNT_ID;
+
+    const attachment = await uploadAttachment(accountId, accessToken, selectedOffer.filename, selectedOffer.contentB64);
+
+    await sendMessage(accountId, accessToken, {
+      fromAddress: process.env.ZOHO_EMAIL,
+      toAddress: email,
       subject: `${tpl.subject} — ${selectedOffer.label}`,
-      text: `${tpl.body(context)}\n\n${selectedOffer.mention}`,
+      content: `${tpl.body(context)}\n\n${selectedOffer.mention}`,
+      mailFormat: 'plaintext',
       attachments: [
         {
-          filename: selectedOffer.filename,
-          content: selectedOffer.contentB64,
-          encoding: 'base64',
-          contentType: 'text/html',
+          storeName: attachment.storeName,
+          attachmentName: attachment.attachmentName,
+          attachmentPath: attachment.attachmentPath,
         },
       ],
     });
+
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (e) {
     return { statusCode: 502, body: JSON.stringify({ error: e.message }) };
