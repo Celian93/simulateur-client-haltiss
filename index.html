@@ -1514,7 +1514,7 @@ function afficher(d) {
           <div class="budget-single-label">Budget maximum que le client souhaite mettre${d.recurring ? ' par intervention' : ''}</div>
           <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ TTC</span></div>
         </div>
-        ${d.recurring ? `<p class="price-note">À l'issue du premier mois, un contrat professionnel pourra vous être proposé, sous réserve de paiement.</p>` : ''}
+        ${d.recurring ? `<p class="price-note">À l'issue du premier mois, un contrat professionnel pourra vous être proposé.</p>` : ''}
         <p class="price-note">${d.recurring ? `Montant par passage (${d.frequency}) — pas un forfait mensuel global. ` : ''}Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.</p>
       </div>
 

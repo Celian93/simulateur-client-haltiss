@@ -122,7 +122,7 @@ async function buildFichePdf(fiche) {
     );
     if (fiche.recurring) {
       doc.fontSize(8.5).fillColor(GREY).text(`Montant par passage (${fiche.frequency}) — pas un forfait mensuel global.`);
-      doc.fontSize(8.5).fillColor(GREY).text("À l'issue du premier mois, un contrat professionnel pourra vous être proposé, sous réserve de paiement.");
+      doc.fontSize(8.5).fillColor(GREY).text("À l'issue du premier mois, un contrat professionnel pourra vous être proposé.");
     }
     doc.fontSize(8.5).fillColor(GREY).text(
       "Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.",
