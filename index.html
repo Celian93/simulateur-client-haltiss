@@ -906,7 +906,8 @@ function generateContactName() {
 }
 
 // Distance à vol d'oiseau entre deux points, corrigée d'un facteur route (~1.3
-// en moyenne en France) pour approcher une distance de trajet réelle et gratuite.
+// en moyenne en France) pour approcher une distance de trajet réelle. Utilisée
+// en repli si l'API de calcul d'itinéraire (realRoadDistanceKm) est indisponible.
 function realDistanceKm(coordsA, coordsB) {
   if (!coordsA || !coordsB) return null;
   const R = 6371;
@@ -920,11 +921,38 @@ function realDistanceKm(coordsA, coordsB) {
   return Math.round(road * 10) / 10;
 }
 
+// Distance routière réelle via l'API publique et gratuite OSRM (routing par
+// le réseau routier, pas à vol d'oiseau) : bien plus cohérente qu'une simple
+// approximation, notamment pour le déménagement où le trajet réel compte.
+// Repli automatique sur l'estimation à vol d'oiseau si l'API ne répond pas.
+async function realRoadDistanceKm(coordsA, coordsB) {
+  if (!coordsA || !coordsB) return null;
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordsA.lon},${coordsA.lat};${coordsB.lon},${coordsB.lat}?overview=false`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.code === 'Ok' && data.routes && data.routes[0]) {
+      return Math.round(data.routes[0].distance / 100) / 10; // mètres → km
+    }
+  } catch (e) { /* repli sur l'estimation à vol d'oiseau ci-dessous */ }
+  return realDistanceKm(coordsA, coordsB);
+}
+
 function fakePostalCode(depCode) {
   if (!depCode) return '';
   if (depCode === '2A' || depCode === '2B') return '20' + String(rand(0, 999)).padStart(3, '0');
   if (depCode.length === 3) return depCode + String(rand(0, 99)).padStart(2, '0');
   return depCode.padStart(2, '0') + String(rand(0, 999)).padStart(3, '0');
+}
+
+// Renvoie le vrai code postal de la commune/zone donnée (essentiel pour Paris,
+// Lyon, Marseille : chaque arrondissement a son propre code postal réel, ex.
+// Paris 15e = 75015 — un code inventé serait incohérent avec le nom affiché).
+// Repli sur un code plausible si l'API n'a pas fourni cette donnée.
+function postalCodeFor(zoneName, depCode) {
+  const known = resolvedLocation && resolvedLocation.zonePostalCodes && resolvedLocation.zonePostalCodes[zoneName];
+  if (known && known.length) return pick(known);
+  return fakePostalCode(depCode);
 }
 
 function formatDuration(h) {
@@ -1070,7 +1098,7 @@ async function resolveCodePostal(cp) {
   }
   renderLocationInfo('pending');
   try {
-    const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,codeDepartement,departement,region,centre&format=json`);
+    const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,codeDepartement,departement,region,centre,codesPostaux&format=json`);
     const data = await res.json();
     if (!Array.isArray(data) || !data.length) {
       resolvedLocation = null;
@@ -1078,18 +1106,43 @@ async function resolveCodePostal(cp) {
       renderLocationInfo('error');
       return;
     }
-    const c = pick(data);
+    let c = pick(data);
     const departementCode = c.codeDepartement;
+
+    // Paris, Lyon et Marseille sont découpées en arrondissements municipaux,
+    // chacun avec son propre code postal réel (ex. Paris 15e = 75015) : par
+    // défaut, l'API géographique les regroupe en une seule commune ("Paris")
+    // avec tous les codes postaux mélangés. On récupère ici l'arrondissement
+    // précis correspondant au code postal saisi par l'agent, pour rester
+    // cohérent (ex. ne jamais afficher "Paris" avec un code postal de Lyon).
+    const ARRONDISSEMENT_DEPTS = ['75', '69', '13'];
+    if (ARRONDISSEMENT_DEPTS.includes(departementCode)) {
+      try {
+        const arrRes = await fetch(`https://geo.api.gouv.fr/communes?codeDepartement=${departementCode}&type=arrondissement-municipal&fields=nom,code,centre,codesPostaux&format=json`);
+        const arrData = await arrRes.json();
+        const match = Array.isArray(arrData) ? arrData.find(a => Array.isArray(a.codesPostaux) && a.codesPostaux.includes(cp)) : null;
+        if (match) c = match;
+      } catch (e) { /* on garde la commune globale en repli */ }
+    }
+    // "Paris 15e Arrondissement" → "Paris 15e", cohérent avec le reste de l'appli.
+    const stripArrondissement = (nom) => (nom || '').replace(/ Arrondissement$/, '');
+    c = { ...c, nom: stripArrondissement(c.nom) };
+
     const ownCoords = (c.centre && Array.isArray(c.centre.coordinates))
       ? { lon: c.centre.coordinates[0], lat: c.centre.coordinates[1] }
       : null;
 
-    // Récupère de vraies communes du département (+ coordonnées) pour générer des
-    // zones cohérentes et calculer des distances réelles entre elles.
+    // Récupère de vraies communes (ou arrondissements) du département, avec
+    // coordonnées et vrais codes postaux, pour générer des zones cohérentes
+    // et calculer des distances réelles entre elles.
     let zones = [];
     let zoneCoords = {};
+    let zonePostalCodes = {};
     try {
-      const zonesRes = await fetch(`https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population,centre&format=json`);
+      const zonesUrl = ARRONDISSEMENT_DEPTS.includes(departementCode)
+        ? `https://geo.api.gouv.fr/communes?codeDepartement=${departementCode}&type=arrondissement-municipal&fields=nom,population,centre,codesPostaux&format=json`
+        : `https://geo.api.gouv.fr/departements/${departementCode}/communes?fields=nom,population,centre,codesPostaux&format=json`;
+      const zonesRes = await fetch(zonesUrl);
       const communes = await zonesRes.json();
       if (Array.isArray(communes) && communes.length) {
         const withPop = communes.filter(x => x.population);
@@ -1097,10 +1150,14 @@ async function resolveCodePostal(cp) {
         // (petits départements/collectivités), on repart de la liste complète.
         const base = withPop.length >= 2 ? withPop : communes;
         const top = base.sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 15);
-        zones = top.map(x => x.nom);
+        zones = top.map(x => stripArrondissement(x.nom));
         top.forEach(x => {
+          const nom = stripArrondissement(x.nom);
           if (x.centre && Array.isArray(x.centre.coordinates)) {
-            zoneCoords[x.nom] = { lon: x.centre.coordinates[0], lat: x.centre.coordinates[1] };
+            zoneCoords[nom] = { lon: x.centre.coordinates[0], lat: x.centre.coordinates[1] };
+          }
+          if (Array.isArray(x.codesPostaux) && x.codesPostaux.length) {
+            zonePostalCodes[nom] = x.codesPostaux;
           }
         });
         // Ultime filet : la commune elle-même si l'API n'a rien retourné d'exploitable.
@@ -1113,10 +1170,14 @@ async function resolveCodePostal(cp) {
     }
 
     // La commune du prestataire lui-même doit toujours faire partie des zones
-    // disponibles, avec ses coordonnées réelles : c'est le point d'ancrage pour
-    // calculer une distance précise (notamment pour le nettoyage, où il n'y a
-    // qu'un seul site et où la distance représente le trajet du prestataire).
+    // disponibles, avec ses coordonnées et son vrai code postal : c'est le
+    // point d'ancrage pour calculer une distance précise (notamment pour le
+    // nettoyage, où il n'y a qu'un seul site et où la distance représente le
+    // trajet du prestataire).
     if (!zones.includes(c.nom)) zones = [c.nom, ...zones];
+    if (Array.isArray(c.codesPostaux) && c.codesPostaux.length && !zonePostalCodes[c.nom]) {
+      zonePostalCodes[c.nom] = c.codesPostaux;
+    }
     if (ownCoords) zoneCoords[c.nom] = ownCoords;
 
     resolvedLocation = {
@@ -1127,6 +1188,7 @@ async function resolveCodePostal(cp) {
       pays: 'France',
       zones,
       zoneCoords,
+      zonePostalCodes,
       ownCoords,
     };
     resolvedFor = cp;
@@ -1210,12 +1272,13 @@ async function generer() {
   const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
   const weekend = Math.random() > 0.78;
 
-  // Distance réelle (à vol d'oiseau + correction routière) uniquement pour le
-  // déménagement, où elle représente le trajet entre les deux adresses client.
-  // Le nettoyage se déroule sur un seul site : il n'y a pas de notion de
-  // kilométrage à afficher ni à faire entrer dans le prix.
+  // Distance routière réelle (via l'API OSRM, repli à vol d'oiseau si
+  // indisponible) uniquement pour le déménagement, où elle représente le
+  // trajet entre les deux adresses client. Le nettoyage se déroule sur un
+  // seul site : il n'y a pas de notion de kilométrage à afficher ni à faire
+  // entrer dans le prix.
   const coords = resolvedLocation && resolvedLocation.zoneCoords;
-  const realDist = singleSite ? null : (coords ? realDistanceKm(coords[depart], coords[arrivee]) : null);
+  const realDist = singleSite ? null : (coords ? await realRoadDistanceKm(coords[depart], coords[arrivee]) : null);
   const dist = singleSite ? 0 : (realDist !== null ? realDist : rand(3, 35));
 
   // Adresse(s) : une seule pour le nettoyage (site d'intervention), deux
@@ -1223,14 +1286,14 @@ async function generer() {
   const arriveeFloor = rand(0, 5);
   const arriveeElevator = true;
   const arriveeQuartier = pick(QUARTIERS);
-  const arriveeCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+  const arriveeCp = resolvedLocation ? postalCodeFor(arrivee, resolvedLocation.departementCode) : '';
 
   let departFloor = null, departElevator = null, departQuartier = null, departCp = null;
   if (!singleSite) {
     departFloor = rand(0, 5);
     departElevator = true;
     departQuartier = pick(QUARTIERS.filter(q => q !== arriveeQuartier)) || QUARTIERS[0];
-    departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+    departCp = resolvedLocation ? postalCodeFor(depart, resolvedLocation.departementCode) : '';
   }
 
   // Fréquence de prestation pour le nettoyage particulier récurrent (les
@@ -1449,7 +1512,7 @@ function afficher(d) {
       </div>
 
       <div class="section stats-block">
-        <div class="section-title">Estimation de clients dans votre secteur</div>
+        <div class="section-title">Estimation statistique des clients dans le secteur du prestataire</div>
         <div class="stats-grid">
           <div class="stat-item"><div class="stat-value">${d.monthlyTotal}</div><div class="stat-label">Clients / mois</div></div>
           <div class="stat-item"><div class="stat-value">${d.monthlyPro}</div><div class="stat-label">Professionnels</div></div>
