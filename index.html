@@ -1727,9 +1727,8 @@ async function generer() {
   // Le déménagement, lui, garde entièrement son moteur existant (computePrice).
   let workers, duration, price, heuresMensuellesVal;
   const nettoyageUrgent = urgent || Boolean(profile.forceUrgent);
-  // Un professionnel raisonne en HT, un particulier en TTC — quel que soit le
-  // secteur (nettoyage ou déménagement).
-  const priceUnit = type === 'B2B' ? 'HT' : 'TTC';
+  // Tout le monde raisonne en TTC, professionnel comme particulier.
+  const priceUnit = 'TTC';
   const pricingModeM2 = singleSite && profile.pricingMode === 'm2';
   if (singleSite) {
     const amountRange = type === 'B2B' ? profile.amountBase : profile.amount;
