@@ -791,7 +791,7 @@ const CONTRAINTES_NETTOYAGE = [
   'Alarme à désactiver puis réactiver','Accès par badge à prévoir',
   'Produits allergènes à éviter','Prestataire devra fournir le matériel',
   'Code d\'entrée à obtenir',
-  'Intervention souhaitée tôt le matin','Zones sensibles à signaler avant intervention',
+  'Intervention souhaitée en soirée','Zones sensibles à signaler avant intervention',
   'Confidentialité des documents à respecter','Prestation à renouveler chaque semaine',
   'Accès livraison à confirmer avec le gardien',
 ];
@@ -1382,6 +1382,7 @@ function buildFicheData(d) {
     constraints: d.constraints,
     workers: d.workers,
     role,
+    sectorKey: d.sector.key,
     equipmentLabel: d.sector.equipmentLabel,
     equipment: d.sector.equipment(d.amount),
     duration: formatDuration(d.duration),
@@ -1439,7 +1440,7 @@ function afficher(d) {
       <div class="fiche-title">${ficheTitle}</div>
       <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
       <div class="result-title">${d.cat}</div>
-      <div class="result-sub">${d.singleSite ? d.arrivee : `${d.depart} → ${d.arrivee} · ~${d.dist} km`} · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
+      <div class="result-sub">${d.singleSite ? d.arrivee : `${d.depart} → ${d.arrivee} · ~${d.dist} km`} · ${d.amount} ${d.sector.unit}${d.sector.key !== 'nettoyage' ? ` · ${d.workers} ${role} · ${d.duration}h` : ''}</div>
       ${flags ? `<div class="flags">${flags}</div>` : ''}
 
       <div class="ai-context" id="ai-context"></div>
@@ -1480,6 +1481,7 @@ function afficher(d) {
         <div class="tags">${d.constraints.map(c => `<span class="tag">${c}</span>`).join('')}</div>
       </div>` : ''}
 
+      ${d.sector.key !== 'nettoyage' ? `
       <div class="section">
         <div class="section-title">6. Informations utiles pour le prestataire</div>
         <ul class="kv-list">
@@ -1487,7 +1489,7 @@ function afficher(d) {
           <li><b>${d.sector.equipmentLabel} :</b> ${d.sector.equipment(d.amount)}</li>
           <li><b>Durée estimée de l'intervention :</b> ${formatDuration(d.duration)}</li>
         </ul>
-      </div>
+      </div>` : ''}
 
       <div class="section">
         <div class="section-title">7. Budget du client</div>

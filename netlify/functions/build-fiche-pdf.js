@@ -60,9 +60,10 @@ async function buildFichePdf(fiche) {
     doc.moveDown(0.5);
     doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold').text(fiche.cat);
     const routeText = fiche.singleSite ? fiche.arrivee.ville : `${fiche.depart.ville} -> ${fiche.arrivee.ville} · ~${fiche.dist} km`;
-    doc.fontSize(10).font('Helvetica').fillColor(GREY).text(
-      `${routeText} · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
-    );
+    const subLine = fiche.sectorKey !== 'nettoyage'
+      ? `${routeText} · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
+      : `${routeText} · ${fiche.amount} ${fiche.unit}`;
+    doc.fontSize(10).font('Helvetica').fillColor(GREY).text(subLine);
 
     // 1. Informations sur le client
     section(doc, 1, 'Informations sur le client');
@@ -102,11 +103,14 @@ async function buildFichePdf(fiche) {
       fiche.constraints.forEach((c) => bullet(doc, c));
     }
 
-    // 6. Infos prestataire
-    section(doc, 6, 'Informations utiles pour le prestataire');
-    line(doc, `Nombre ${deLabel(fiche.role)} conseillé`, fiche.workers);
-    line(doc, fiche.equipmentLabel, fiche.equipment);
-    line(doc, 'Durée estimée de l\'intervention', fiche.duration);
+    // 6. Infos prestataire (non pertinent pour le nettoyage : c'est au
+    // prestataire de dimensionner lui-même son équipe, son matériel et sa durée)
+    if (fiche.sectorKey !== 'nettoyage') {
+      section(doc, 6, 'Informations utiles pour le prestataire');
+      line(doc, `Nombre ${deLabel(fiche.role)} conseillé`, fiche.workers);
+      line(doc, fiche.equipmentLabel, fiche.equipment);
+      line(doc, 'Durée estimée de l\'intervention', fiche.duration);
+    }
 
     // 7. Budget
     section(doc, 7, 'Budget du client');
