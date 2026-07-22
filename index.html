@@ -1706,7 +1706,9 @@ async function generer() {
 
   // Adresse(s) : une seule pour le nettoyage (site d'intervention), deux
   // distinctes (départ/arrivée) pour le déménagement.
-  const arriveeFloor = rand(0, 5);
+  // Un restaurant se trouve toujours en rez-de-chaussée (salle accessible
+  // directement depuis la rue) : jamais en étage.
+  const arriveeFloor = (singleSite && profile.dureeFamily === 'restaurant') ? 0 : rand(0, 5);
   const arriveeElevator = true;
   const arriveeQuartier = pick(QUARTIERS);
   const arriveeCp = resolvedLocation ? postalCodeFor(arrivee, resolvedLocation.departementCode) : '';
