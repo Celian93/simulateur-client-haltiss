@@ -10,6 +10,7 @@
 // type "Self Client"), ZOHO_ACCOUNT_ID et ZOHO_EMAIL (adresse d'envoi).
 
 const { OFFRE_FREE_HTML_B64, OFFRE_PARTICIPATION_HTML_B64 } = require('./brochures');
+const { buildFichePdf } = require('./build-fiche-pdf');
 
 const ZOHO_ACCOUNTS_BASE = 'https://accounts.zoho.eu';
 const ZOHO_MAIL_API_BASE = 'https://mail.zoho.eu';
@@ -133,8 +134,7 @@ async function getAccessToken() {
   return data.access_token;
 }
 
-async function uploadAttachment(accountId, accessToken, filename, base64Content) {
-  const buffer = Buffer.from(base64Content, 'base64');
+async function uploadAttachment(accountId, accessToken, filename, buffer) {
   const url = `${ZOHO_MAIL_API_BASE}/api/accounts/${accountId}/messages/attachments?fileName=${encodeURIComponent(filename)}&isInline=false`;
   const res = await fetch(url, {
     method: 'POST',
@@ -179,13 +179,16 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai, offer } = payload;
+  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai, offer, fiche } = payload;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Email invalide' }) };
   }
   const selectedOffer = OFFERS[offer];
   if (!selectedOffer) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Offre invalide (attendu "free" ou "participation")' }) };
+  }
+  if (!fiche) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Fiche client manquante' }) };
   }
   if (!process.env.ZOHO_CLIENT_ID || !process.env.ZOHO_CLIENT_SECRET || !process.env.ZOHO_REFRESH_TOKEN || !process.env.ZOHO_ACCOUNT_ID || !process.env.ZOHO_EMAIL) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Configuration Zoho incomplète (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN / ZOHO_ACCOUNT_ID / ZOHO_EMAIL)' }) };
@@ -208,19 +211,31 @@ exports.handler = async (event) => {
     const accessToken = await getAccessToken();
     const accountId = process.env.ZOHO_ACCOUNT_ID;
 
-    const attachment = await uploadAttachment(accountId, accessToken, selectedOffer.filename, selectedOffer.contentB64);
+    const fichePdfBuffer = await buildFichePdf(fiche);
+    const ficheAttachment = await uploadAttachment(accountId, accessToken, 'Fiche-client-Haltiss.pdf', fichePdfBuffer);
+    const brochureAttachment = await uploadAttachment(
+      accountId,
+      accessToken,
+      selectedOffer.filename,
+      Buffer.from(selectedOffer.contentB64, 'base64')
+    );
 
     await sendMessage(accountId, accessToken, {
       fromAddress: process.env.ZOHO_EMAIL,
       toAddress: email,
       subject: `${tpl.subject} — ${selectedOffer.label}`,
-      content: `${tpl.body(context)}\n\n${selectedOffer.mention}`,
+      content: `${tpl.body(context)}\n\n${selectedOffer.mention}\nVous trouverez également la fiche client complète en pièce jointe (PDF).`,
       mailFormat: 'plaintext',
       attachments: [
         {
-          storeName: attachment.storeName,
-          attachmentName: attachment.attachmentName,
-          attachmentPath: attachment.attachmentPath,
+          storeName: ficheAttachment.storeName,
+          attachmentName: ficheAttachment.attachmentName,
+          attachmentPath: ficheAttachment.attachmentPath,
+        },
+        {
+          storeName: brochureAttachment.storeName,
+          attachmentName: brochureAttachment.attachmentName,
+          attachmentPath: brochureAttachment.attachmentPath,
         },
       ],
     });

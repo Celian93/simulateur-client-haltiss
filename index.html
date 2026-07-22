@@ -1215,6 +1215,50 @@ async function generer() {
   });
 }
 
+// Extrait de `d` les données brutes (sans les fonctions du secteur) nécessaires
+// à la génération du PDF de la fiche client côté serveur.
+function buildFicheData(d) {
+  const role = d.workers === 1 ? d.sector.roleSingular : d.sector.rolePlural;
+  const groups = {};
+  d.items.forEach(i => {
+    const cat = d.sector.categorize(i.n);
+    (groups[cat] = groups[cat] || []).push(i);
+  });
+  const itemGroups = d.sector.categoryOrder
+    .filter(cat => groups[cat] && groups[cat].length)
+    .map(cat => ({
+      label: cat,
+      items: groups[cat].map(i => `${i.q} ${i.n.toLowerCase()}${i.f ? ' (fragile)' : ''}`),
+    }));
+
+  return {
+    title: `Fiche client – Demande de ${d.sector.label.toLowerCase()} ${d.type === 'B2B' ? 'professionnel' : 'particulier'}`,
+    type: d.type,
+    cat: d.cat,
+    clientName: d.clientName,
+    size: d.size,
+    sizeUnit: d.sizeUnit,
+    addressNoun: d.sector.addressNoun,
+    depart: { ville: d.depart, cp: d.departCp, quartier: d.departQuartier, floor: d.departFloor, elevator: d.departElevator },
+    arrivee: { ville: d.arrivee, cp: d.arriveeCp, quartier: d.arriveeQuartier, floor: d.arriveeFloor, elevator: d.arriveeElevator },
+    dist: d.dist,
+    delai: d.delai,
+    amountLabel: d.sector.amountLabel,
+    amount: d.amount,
+    unit: d.sector.unit,
+    itemsTitle: d.sector.itemsTitle,
+    itemGroups,
+    prestationsExtra: d.prestationsExtra,
+    constraints: d.constraints,
+    workers: d.workers,
+    role,
+    equipmentLabel: d.sector.equipmentLabel,
+    equipment: d.sector.equipment(d.amount),
+    duration: formatDuration(d.duration),
+    price: d.price,
+  };
+}
+
 function afficher(d) {
   const role = d.workers === 1 ? d.sector.roleSingular : d.sector.rolePlural;
   const flags = [
@@ -1492,6 +1536,7 @@ async function reserverClient(offer) {
         amount: lastFiche.amount,
         unit: lastFiche.sector.unit,
         delai: lastFiche.delai,
+        fiche: buildFicheData(lastFiche),
       }),
     });
     if (!res.ok) throw new Error('request failed');

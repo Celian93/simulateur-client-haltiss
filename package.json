@@ -1,4 +1,7 @@
 {
   "name": "simulateur-client-haltiss",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "pdfkit": "^0.19.1"
+  }
 }

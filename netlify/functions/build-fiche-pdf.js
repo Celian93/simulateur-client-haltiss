@@ -1,0 +1,118 @@
+// Génère la fiche client complète (les mêmes 7 sections qu'à l'écran) au
+// format PDF, pour l'envoyer en pièce jointe au prestataire. Utilise pdfkit
+// (pure JS, pas de dépendance native) pour rester compatible avec les
+// fonctions Netlify serverless.
+
+const PDFDocument = require('pdfkit');
+
+const GREEN = '#059669';
+const DARK = '#0f172a';
+const GREY = '#475569';
+
+// Number.toLocaleString('fr-FR') insère une espace insécable (U+00A0) comme
+// séparateur de milliers, glyphe absent des polices standard PDF (Helvetica) :
+// on le remplace par une espace normale pour un rendu correct.
+function formatEuro(n) {
+  return Number(n).toLocaleString('fr-FR').replace(/[\u00A0\u202F]/g, ' ');
+}
+
+function section(doc, number, title) {
+  doc.moveDown(0.8);
+  doc.fillColor(GREEN).fontSize(12).font('Helvetica-Bold').text(`${number}. ${title}`);
+  doc.fillColor(DARK).moveDown(0.3);
+}
+
+function line(doc, label, value) {
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(`${label} : `, { continued: true });
+  doc.font('Helvetica').fillColor(GREY).text(String(value));
+}
+
+function bullet(doc, text) {
+  doc.font('Helvetica').fontSize(10).fillColor(GREY).text(`•  ${text}`, { indent: 10 });
+}
+
+function addressBlock(doc, label, addr) {
+  doc.font('Helvetica-Bold').fontSize(10.5).fillColor(DARK).text(label);
+  bullet(doc, `Ville : ${addr.ville}${addr.cp ? ` (${addr.cp})` : ''}`);
+  bullet(doc, `Quartier : ${addr.quartier}`);
+  bullet(doc, `Étage : ${addr.floor === 0 ? 'Rez-de-chaussée' : `${addr.floor}e étage`}`);
+  bullet(doc, `Ascenseur : ${addr.elevator ? 'Oui' : 'Non'}`);
+  bullet(doc, 'Stationnement : Disponible');
+  doc.moveDown(0.4);
+}
+
+async function buildFichePdf(fiche) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // En-tête
+    doc.fillColor(GREEN).fontSize(18).font('Helvetica-Bold').text(fiche.title);
+    doc.fillColor(GREY).fontSize(11).font('Helvetica').text(fiche.type === 'B2B' ? 'Profil : Professionnel' : 'Profil : Particulier');
+    doc.moveDown(0.5);
+    doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold').text(fiche.cat);
+    doc.fontSize(10).font('Helvetica').fillColor(GREY).text(
+      `${fiche.depart.ville} -> ${fiche.arrivee.ville} · ~${fiche.dist} km · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
+    );
+
+    // 1. Informations sur le client
+    section(doc, 1, 'Informations sur le client');
+    if (fiche.type === 'B2B') {
+      line(doc, 'Contact', fiche.clientName);
+      line(doc, 'Activité', fiche.cat);
+      if (fiche.size) line(doc, `Nombre de ${fiche.sizeUnit}s`, fiche.size);
+    } else {
+      line(doc, 'Client', 'Particulier');
+    }
+
+    // 2. Adresses
+    section(doc, 2, `Informations sur ${fiche.addressNoun}`);
+    addressBlock(doc, 'Adresse de départ', fiche.depart);
+    addressBlock(doc, 'Adresse d\'arrivée', fiche.arrivee);
+    line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
+    line(doc, 'Date souhaitée', fiche.delai);
+    line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
+
+    // 3. Matériel / prestations
+    section(doc, 3, fiche.itemsTitle);
+    fiche.itemGroups.forEach((g) => {
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(g.label);
+      g.items.forEach((it) => bullet(doc, it));
+      doc.moveDown(0.2);
+    });
+
+    // 4. Prestations demandées
+    section(doc, 4, 'Prestations demandées');
+    fiche.prestationsExtra.forEach((p) => bullet(doc, p));
+
+    // 5. Contraintes
+    if (fiche.constraints.length) {
+      section(doc, 5, 'Contraintes particulières');
+      fiche.constraints.forEach((c) => bullet(doc, c));
+    }
+
+    // 6. Infos prestataire
+    section(doc, 6, 'Informations utiles pour le prestataire');
+    line(doc, `Nombre de ${fiche.role} conseillé`, fiche.workers);
+    line(doc, fiche.equipmentLabel, fiche.equipment);
+    line(doc, 'Durée estimée de l\'intervention', fiche.duration);
+
+    // 7. Budget
+    section(doc, 7, 'Budget du client');
+    doc.font('Helvetica-Bold').fontSize(13).fillColor(GREEN).text(
+      `${formatEuro(fiche.price)} € TTC`
+    );
+    doc.font('Helvetica').fontSize(9).fillColor(GREY).text('Budget maximum que le client souhaite mettre.');
+    doc.fontSize(8.5).fillColor(GREY).text(
+      "Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.",
+      { italics: true }
+    );
+
+    doc.end();
+  });
+}
+
+module.exports = { buildFichePdf };
