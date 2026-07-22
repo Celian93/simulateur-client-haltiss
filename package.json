@@ -2,6 +2,7 @@
   "name": "simulateur-client-haltiss",
   "private": true,
   "dependencies": {
+    "pdf-lib": "^1.17.1",
     "pdfkit": "^0.19.1"
   }
 }

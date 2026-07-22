@@ -1519,6 +1519,9 @@ async function reserverClient(offer) {
   btn.textContent = 'Envoi en cours…';
   statusEl.textContent = '';
 
+  const currentUser = netlifyIdentity.currentUser();
+  const sentBy = currentUser?.email ? currentUser.email.split('@')[0].split('.')[0].toLowerCase() : '';
+
   try {
     const res = await fetch('/.netlify/functions/reserver-client', {
       method: 'POST',
@@ -1526,6 +1529,7 @@ async function reserverClient(offer) {
       body: JSON.stringify({
         email,
         offer,
+        sentBy,
         sector: lastFiche.sector.key,
         cat: lastFiche.cat,
         depart: lastFiche.depart,

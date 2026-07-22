@@ -8,12 +8,15 @@
 // restriction. Nécessite les variables d'environnement ZOHO_CLIENT_ID,
 // ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN (générés via api-console.zoho.eu,
 // type "Self Client"), ZOHO_ACCOUNT_ID et ZOHO_EMAIL (adresse d'envoi).
+//
+// Le lien "Devenir partenaire" de la brochure jointe est personnalisé avec
+// l'identifiant de l'agent qui envoie (sentBy), pour que la réponse au
+// questionnaire partenaire revienne au bon agent (voir submit-questionnaire.js).
 
 const { OFFRE_FREE_PDF_B64, OFFRE_PARTICIPATION_PDF_B64 } = require('./brochures');
 const { buildFichePdf } = require('./build-fiche-pdf');
-
-const ZOHO_ACCOUNTS_BASE = 'https://accounts.zoho.eu';
-const ZOHO_MAIL_API_BASE = 'https://mail.zoho.eu';
+const { patchBrochureLink } = require('./patch-brochure-link');
+const { getAccessToken, uploadAttachment, sendMessage, hasZohoConfig } = require('./zoho-mail');
 
 const OFFERS = {
   free: {
@@ -116,57 +119,6 @@ L'équipe Haltiss`,
   },
 ];
 
-async function getAccessToken() {
-  const res = await fetch(`${ZOHO_ACCOUNTS_BASE}/oauth/v2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: process.env.ZOHO_CLIENT_ID,
-      client_secret: process.env.ZOHO_CLIENT_SECRET,
-      refresh_token: process.env.ZOHO_REFRESH_TOKEN,
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.access_token) {
-    throw new Error(data.error || 'Impossible d\'obtenir un jeton d\'accès Zoho');
-  }
-  return data.access_token;
-}
-
-async function uploadAttachment(accountId, accessToken, filename, buffer) {
-  const url = `${ZOHO_MAIL_API_BASE}/api/accounts/${accountId}/messages/attachments?fileName=${encodeURIComponent(filename)}&isInline=false`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      'Content-Type': 'application/octet-stream',
-    },
-    body: buffer,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.data) {
-    throw new Error(data.error?.errorMessage || 'Échec de l\'envoi de la pièce jointe à Zoho');
-  }
-  return data.data;
-}
-
-async function sendMessage(accountId, accessToken, message) {
-  const res = await fetch(`${ZOHO_MAIL_API_BASE}/api/accounts/${accountId}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(message),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error?.errorMessage || 'Échec de l\'envoi du message via Zoho');
-  }
-  return data;
-}
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -179,7 +131,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai, offer, fiche } = payload;
+  const { email, sector, cat, depart, arrivee, dist, price, amount, unit, delai, offer, fiche, sentBy } = payload;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Email invalide' }) };
   }
@@ -190,7 +142,7 @@ exports.handler = async (event) => {
   if (!fiche) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Fiche client manquante' }) };
   }
-  if (!process.env.ZOHO_CLIENT_ID || !process.env.ZOHO_CLIENT_SECRET || !process.env.ZOHO_REFRESH_TOKEN || !process.env.ZOHO_ACCOUNT_ID || !process.env.ZOHO_EMAIL) {
+  if (!hasZohoConfig()) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Configuration Zoho incomplète (ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN / ZOHO_ACCOUNT_ID / ZOHO_EMAIL)' }) };
   }
 
@@ -213,12 +165,9 @@ exports.handler = async (event) => {
 
     const fichePdfBuffer = await buildFichePdf(fiche);
     const ficheAttachment = await uploadAttachment(accountId, accessToken, 'Fiche-client-Haltiss.pdf', fichePdfBuffer);
-    const brochureAttachment = await uploadAttachment(
-      accountId,
-      accessToken,
-      selectedOffer.filename,
-      Buffer.from(selectedOffer.contentB64, 'base64')
-    );
+
+    const brochureBuffer = await patchBrochureLink(Buffer.from(selectedOffer.contentB64, 'base64'), sentBy);
+    const brochureAttachment = await uploadAttachment(accountId, accessToken, selectedOffer.filename, brochureBuffer);
 
     await sendMessage(accountId, accessToken, {
       fromAddress: process.env.ZOHO_EMAIL,
