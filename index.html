@@ -1526,7 +1526,7 @@ async function resolveCodePostal(cp) {
         // du code postal saisi), pas tout le département qui peut s'étendre sur
         // plus de 100 km — sinon le prestataire se voit proposer des trajets
         // totalement incohérents avec sa zone d'intervention réelle.
-        const RAYON_ZONE_KM = 20;
+        const RAYON_ZONE_KM = 30;
         let candidats = communes;
         if (ownCoords) {
           const proches = communes.filter(x => {
