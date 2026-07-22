@@ -40,7 +40,7 @@ function addressBlock(doc, label, addr) {
   doc.font('Helvetica-Bold').fontSize(10.5).fillColor(DARK).text(label);
   bullet(doc, `Ville : ${addr.ville}${addr.cp ? ` (${addr.cp})` : ''}`);
   bullet(doc, `Quartier : ${addr.quartier}`);
-  bullet(doc, `Étage : ${addr.floor === 0 ? 'Rez-de-chaussée' : `${addr.floor}e étage`}`);
+  bullet(doc, `Étage : ${addr.floor === 0 ? 'Rez-de-chaussée' : addr.floor === 1 ? '1er étage' : `${addr.floor}e étage`}`);
   bullet(doc, `Ascenseur : ${addr.elevator ? 'Oui' : 'Non'}`);
   bullet(doc, 'Stationnement : Disponible');
   doc.moveDown(0.4);

@@ -1415,7 +1415,7 @@ function afficher(d) {
       <ul class="kv-list">
         <li><b>Ville :</b> ${ville}${cp ? ` (${cp})` : ''}</li>
         <li><b>Quartier :</b> ${quartier}</li>
-        <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : `${floor}ᵉ étage`}</li>
+        <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : floor === 1 ? '1ᵉʳ étage' : `${floor}ᵉ étage`}</li>
         <li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>
         <li><b>Stationnement :</b> Disponible</li>
       </ul>
@@ -1518,7 +1518,7 @@ function afficher(d) {
           <div class="stat-item"><div class="stat-value">${d.monthlyPro}</div><div class="stat-label">Professionnels</div></div>
           <div class="stat-item"><div class="stat-value">${d.monthlyPart}</div><div class="stat-label">Particuliers</div></div>
         </div>
-        <p class="stats-disclaimer">Ces garanties ne sont pas à confondre avec les statistiques ci-dessus : il s'agit d'une estimation statistique, pas d'une garantie contractuelle du nombre de clients proposés.</p>
+        <p class="stats-disclaimer">Les garanties que la plateforme vous propose (5 clients) ne sont pas à confondre avec les statistiques ci-dessus.</p>
       </div>
     </div>
     <div class="actions">
