@@ -1540,8 +1540,10 @@ async function resolveCodePostal(cp) {
         const withPop = candidats.filter(x => x.population);
         // Filet de sécurité : si trop peu de communes ont une population renseignée
         // (petits départements/collectivités), on repart de la liste candidate complète.
-        const base = withPop.length >= 2 ? withPop : candidats;
-        const top = base.sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 15);
+        // Le rayon de 30 km borne déjà la zone géographiquement : on utilise donc
+        // TOUTES les communes proches (pas seulement les 15 plus peuplées), pour
+        // une vraie variété plutôt que de toujours retomber sur les mêmes villes.
+        const top = withPop.length >= 2 ? withPop : candidats;
         zones = top.map(x => stripArrondissement(x.nom));
         top.forEach(x => {
           const nom = stripArrondissement(x.nom);
