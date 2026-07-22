@@ -81,7 +81,7 @@ const TEMPLATES_NETTOYAGE = [
     subject: 'Un client nettoyage vous attend — réponse sous 24h',
     body: (c) => `Bonjour,
 
-Un nouveau client (${c.cat}) recherche un prestataire de nettoyage entre ${c.depart} et ${c.arrivee} (environ ${c.dist} km).
+Un nouveau client (${c.cat}) recherche un prestataire de nettoyage à ${c.arrivee} (environ ${c.dist} km depuis chez vous).
 
 Prestation : ${c.amount} ${c.unit}. Intervention souhaitée ${c.delai}.
 
@@ -95,7 +95,7 @@ L'équipe Haltiss`,
     subject: 'Nouvelle demande de prestation de nettoyage',
     body: (c) => `Bonjour,
 
-Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé entre ${c.depart} et ${c.arrivee} (${c.dist} km, ${c.amount} ${c.unit}).
+Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé à ${c.arrivee} (${c.dist} km depuis chez vous, ${c.amount} ${c.unit}).
 
 Délai souhaité par le client : ${c.delai}.
 Le client est prêt à mettre jusqu'à ${c.price} € TTC pour cette prestation.
@@ -109,7 +109,7 @@ L'équipe Haltiss`,
     subject: 'Mise en relation nettoyage — à traiter sous 24h',
     body: (c) => `Bonjour,
 
-Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (déplacement depuis ${c.depart}, ~${c.dist} km, ${c.amount} ${c.unit}), ${c.delai}.
+Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (~${c.dist} km depuis chez vous, ${c.amount} ${c.unit}), ${c.delai}.
 
 Budget client indicatif : jusqu'à ${c.price} € TTC.
 

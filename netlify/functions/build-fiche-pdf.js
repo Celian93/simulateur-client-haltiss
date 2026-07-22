@@ -16,6 +16,11 @@ function formatEuro(n) {
   return Number(n).toLocaleString('fr-FR').replace(/[\u00A0\u202F]/g, ' ');
 }
 
+// \u00C9lision correcte ("d'agents" et non "de agents") pour les mots commen\u00E7ant par une voyelle.
+function deLabel(word) {
+  return /^[aeiouh\u00E9\u00E8\u00EA\u00E0\u00E2\u00EE\u00EF\u00F4\u00FB\u00F9]/i.test(word) ? `d'${word}` : `de ${word}`;
+}
+
 function section(doc, number, title) {
   doc.moveDown(0.8);
   doc.fillColor(GREEN).fontSize(12).font('Helvetica-Bold').text(`${number}. ${title}`);
@@ -54,8 +59,9 @@ async function buildFichePdf(fiche) {
     doc.fillColor(GREY).fontSize(11).font('Helvetica').text(fiche.type === 'B2B' ? 'Profil : Professionnel' : 'Profil : Particulier');
     doc.moveDown(0.5);
     doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold').text(fiche.cat);
+    const routeText = fiche.singleSite ? fiche.arrivee.ville : `${fiche.depart.ville} -> ${fiche.arrivee.ville}`;
     doc.fontSize(10).font('Helvetica').fillColor(GREY).text(
-      `${fiche.depart.ville} -> ${fiche.arrivee.ville} · ~${fiche.dist} km · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
+      `${routeText} · ~${fiche.dist} km · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
     );
 
     // 1. Informations sur le client
@@ -70,11 +76,12 @@ async function buildFichePdf(fiche) {
 
     // 2. Adresses
     section(doc, 2, `Informations sur ${fiche.addressNoun}`);
-    addressBlock(doc, 'Adresse de départ', fiche.depart);
-    addressBlock(doc, 'Adresse d\'arrivée', fiche.arrivee);
-    line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
+    if (!fiche.singleSite) addressBlock(doc, 'Adresse de départ', fiche.depart);
+    addressBlock(doc, fiche.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', fiche.arrivee);
+    line(doc, fiche.singleSite ? 'Distance depuis le prestataire' : 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
+    if (fiche.frequency) line(doc, 'Fréquence souhaitée', fiche.frequency);
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);
@@ -96,7 +103,7 @@ async function buildFichePdf(fiche) {
 
     // 6. Infos prestataire
     section(doc, 6, 'Informations utiles pour le prestataire');
-    line(doc, `Nombre de ${fiche.role} conseillé`, fiche.workers);
+    line(doc, `Nombre ${deLabel(fiche.role)} conseillé`, fiche.workers);
     line(doc, fiche.equipmentLabel, fiche.equipment);
     line(doc, 'Durée estimée de l\'intervention', fiche.duration);
 

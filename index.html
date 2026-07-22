@@ -733,8 +733,10 @@ const B2B_NETTOYAGE = [
   ]},
 ];
 
+const FREQUENCES_NETTOYAGE = ['1 fois par semaine', '2 fois par semaine', 'Toutes les 2 semaines', '1 fois par mois'];
+
 const B2C_NETTOYAGE = [
-  { cat:'Ménage récurrent — appartement', amount:[40,70], items:[
+  { cat:'Ménage récurrent — appartement', amount:[40,70], recurring:true, items:[
     {n:'Dépoussiérage',q:[3,5],f:false},{n:'Lavage des sols',q:[3,5],f:false},
     {n:'Nettoyage sanitaires',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
     {n:'Vitres intérieures',q:[2,6],f:false},
@@ -838,7 +840,7 @@ const SECTORS = {
     equipment: () => 'Monobrosse, aspirateur professionnel, chariot de ménage, produits adaptés aux surfaces à traiter',
     equipmentLabel: 'Matériel recommandé',
     prestationsExtra: () => prestationsNettoyageComplement(),
-    addressNoun: 'la prestation',
+    addressNoun: 'le site d\'intervention',
     monthlyVolume: () => rand(6, 9),
   },
 };
@@ -975,6 +977,8 @@ function contraintesDerivees(items) {
 
 // ── UTILITAIRES ───────────────────────────────────────────────────────────────
 const pick = a => a[Math.floor(Math.random() * a.length)];
+// Élision correcte ("d'agents" et non "de agents") pour les mots commençant par une voyelle.
+const deLabel = word => /^[aeiouhéèêàâîïôûù]/i.test(word) ? `d'${word}` : `de ${word}`;
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const pickN = (a, n) => [...a].sort(() => Math.random() - 0.5).slice(0, n);
 
@@ -1050,7 +1054,7 @@ async function resolveCodePostal(cp) {
   }
   renderLocationInfo('pending');
   try {
-    const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,codeDepartement,departement,region&format=json`);
+    const res = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,codeDepartement,departement,region,centre&format=json`);
     const data = await res.json();
     if (!Array.isArray(data) || !data.length) {
       resolvedLocation = null;
@@ -1060,6 +1064,9 @@ async function resolveCodePostal(cp) {
     }
     const c = pick(data);
     const departementCode = c.codeDepartement;
+    const ownCoords = (c.centre && Array.isArray(c.centre.coordinates))
+      ? { lon: c.centre.coordinates[0], lat: c.centre.coordinates[1] }
+      : null;
 
     // Récupère de vraies communes du département (+ coordonnées) pour générer des
     // zones cohérentes et calculer des distances réelles entre elles.
@@ -1089,6 +1096,13 @@ async function resolveCodePostal(cp) {
       zones = [c.nom]; // repli : au moins la commune résolue par le code postal
     }
 
+    // La commune du prestataire lui-même doit toujours faire partie des zones
+    // disponibles, avec ses coordonnées réelles : c'est le point d'ancrage pour
+    // calculer une distance précise (notamment pour le nettoyage, où il n'y a
+    // qu'un seul site et où la distance représente le trajet du prestataire).
+    if (!zones.includes(c.nom)) zones = [c.nom, ...zones];
+    if (ownCoords) zoneCoords[c.nom] = ownCoords;
+
     resolvedLocation = {
       commune: c.nom,
       departementCode,
@@ -1097,6 +1111,7 @@ async function resolveCodePostal(cp) {
       pays: 'France',
       zones,
       zoneCoords,
+      ownCoords,
     };
     resolvedFor = cp;
     renderLocationInfo('ok', resolvedLocation);
@@ -1124,16 +1139,24 @@ async function generer() {
   // 70% professionnel / 30% particulier, comme en réalité sur le réseau Haltiss
   let type = Math.random() < 0.7 ? 'B2B' : 'B2C';
   let profile, cat, depart, arrivee;
+  // Le nettoyage se déroule sur un seul site (pas de trajet A→B comme un
+  // déménagement) : on ne génère qu'une adresse d'intervention.
+  const singleSite = sector.key === 'nettoyage';
 
   for (let t = 0; t < 8; t++) {
     profile = pick(type === 'B2B' ? sector.B2B : sector.B2C);
     cat = profile.cat;
-    depart = pick(zones);
-    arrivee = pick(zones.filter(z => z !== depart)) || zones[0];
+    if (singleSite) {
+      depart = null;
+      arrivee = pick(zones);
+    } else {
+      depart = pick(zones);
+      arrivee = pick(zones.filter(z => z !== depart)) || zones[0];
+    }
     const last5 = genHistory.slice(-5);
-    if (!last5.some(h => h.cat === cat && h.depart === depart)) break;
+    if (!last5.some(h => h.cat === cat && h.depart === (depart || arrivee))) break;
   }
-  genHistory.push({ cat, depart });
+  genHistory.push({ cat, depart: depart || arrivee });
 
   let items = [], amount, constraints, size = null;
 
@@ -1171,21 +1194,37 @@ async function generer() {
   const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
   const weekend = Math.random() > 0.78;
 
-  // Distance réelle (à vol d'oiseau + correction routière) si les coordonnées des
-  // communes sont disponibles, sinon estimation raisonnable en repli.
+  // Distance réelle (à vol d'oiseau + correction routière) si les coordonnées sont
+  // disponibles, sinon estimation raisonnable en repli. Pour le nettoyage (site
+  // unique), la distance représente le trajet du prestataire depuis sa propre
+  // localisation jusqu'au site du client — pas un trajet entre deux adresses
+  // client comme pour un déménagement.
   const coords = resolvedLocation && resolvedLocation.zoneCoords;
-  const realDist = coords ? realDistanceKm(coords[depart], coords[arrivee]) : null;
+  const ownCoords = resolvedLocation && resolvedLocation.ownCoords;
+  const realDist = singleSite
+    ? (coords && ownCoords ? realDistanceKm(ownCoords, coords[arrivee]) : null)
+    : (coords ? realDistanceKm(coords[depart], coords[arrivee]) : null);
   const dist = realDist !== null ? realDist : rand(3, 35);
 
-  // Adresses de départ et d'arrivée (distinctes l'une de l'autre)
-  const departFloor = rand(0, 5);
+  // Adresse(s) : une seule pour le nettoyage (site d'intervention), deux
+  // distinctes (départ/arrivée) pour le déménagement.
   const arriveeFloor = rand(0, 5);
-  const departElevator = true;
   const arriveeElevator = true;
-  const departQuartier = pick(QUARTIERS);
-  const arriveeQuartier = pick(QUARTIERS.filter(q => q !== departQuartier)) || QUARTIERS[0];
-  const departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+  const arriveeQuartier = pick(QUARTIERS);
   const arriveeCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+
+  let departFloor = null, departElevator = null, departQuartier = null, departCp = null;
+  if (!singleSite) {
+    departFloor = rand(0, 5);
+    departElevator = true;
+    departQuartier = pick(QUARTIERS.filter(q => q !== arriveeQuartier)) || QUARTIERS[0];
+    departCp = resolvedLocation ? fakePostalCode(resolvedLocation.departementCode) : '';
+  }
+
+  // Fréquence de prestation pour le nettoyage particulier récurrent (les
+  // autres catégories nettoyage B2C sont ponctuelles : fin de bail, après
+  // travaux, dégât des eaux... et n'ont pas de fréquence à demander).
+  const frequency = (singleSite && type === 'B2C' && profile.recurring) ? pick(FREQUENCES_NETTOYAGE) : null;
 
   // Le prix tient compte de la difficulté d'accès à l'arrivée (portage le plus contraignant)
   const workers = sector.workers(amount);
@@ -1207,7 +1246,7 @@ async function generer() {
   afficher({
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, delai, dispo, workers, duration, price,
-    urgent, weekend, clientName,
+    urgent, weekend, clientName, singleSite, frequency,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
@@ -1239,10 +1278,12 @@ function buildFicheData(d) {
     size: d.size,
     sizeUnit: d.sizeUnit,
     addressNoun: d.sector.addressNoun,
-    depart: { ville: d.depart, cp: d.departCp, quartier: d.departQuartier, floor: d.departFloor, elevator: d.departElevator },
+    singleSite: d.singleSite,
+    depart: d.singleSite ? null : { ville: d.depart, cp: d.departCp, quartier: d.departQuartier, floor: d.departFloor, elevator: d.departElevator },
     arrivee: { ville: d.arrivee, cp: d.arriveeCp, quartier: d.arriveeQuartier, floor: d.arriveeFloor, elevator: d.arriveeElevator },
     dist: d.dist,
     delai: d.delai,
+    frequency: d.frequency || null,
     amountLabel: d.sector.amountLabel,
     amount: d.amount,
     unit: d.sector.unit,
@@ -1309,7 +1350,7 @@ function afficher(d) {
       <div class="fiche-title">${ficheTitle}</div>
       <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
       <div class="result-title">${d.cat}</div>
-      <div class="result-sub">${d.depart} → ${d.arrivee} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
+      <div class="result-sub">${d.singleSite ? d.arrivee : `${d.depart} → ${d.arrivee}`} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
       ${flags ? `<div class="flags">${flags}</div>` : ''}
 
       <div class="ai-context" id="ai-context"></div>
@@ -1322,13 +1363,14 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">2. Informations sur ${d.sector.addressNoun}</div>
         <div class="address-grid">
-          ${addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator)}
-          ${addressBlock('Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator)}
+          ${d.singleSite ? '' : addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator)}
+          ${addressBlock(d.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator)}
         </div>
         <ul class="kv-list">
-          <li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>
+          <li><b>${d.singleSite ? 'Distance depuis le prestataire' : 'Distance entre les deux sites'} :</b> ${String(d.dist).replace('.', ',')} km</li>
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
+          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency}</li>` : ''}
         </ul>
       </div>
 
@@ -1351,7 +1393,7 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">6. Informations utiles pour le prestataire</div>
         <ul class="kv-list">
-          <li><b>Nombre de ${role} conseillé :</b> ${d.workers}</li>
+          <li><b>Nombre ${deLabel(role)} conseillé :</b> ${d.workers}</li>
           <li><b>${d.sector.equipmentLabel} :</b> ${d.sector.equipment(d.amount)}</li>
           <li><b>Durée estimée de l'intervention :</b> ${formatDuration(d.duration)}</li>
         </ul>
