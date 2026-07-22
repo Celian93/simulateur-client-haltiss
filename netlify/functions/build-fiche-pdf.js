@@ -90,9 +90,9 @@ async function buildFichePdf(fiche) {
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
+    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
     if (fiche.sectorKey === 'nettoyage' && !fiche.pricingModeM2) line(doc, 'Durée estimée par passage', fiche.duration);
     if (fiche.heureIntervention) line(doc, 'Horaire d\'intervention souhaité', `${fiche.heureIntervention} (fin de journée)`);
-    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);
@@ -138,7 +138,7 @@ async function buildFichePdf(fiche) {
       `${formatEuro(fiche.price)} € ${fiche.priceUnit || 'TTC'}`
     );
     doc.font('Helvetica').fontSize(9).fillColor(GREY).text(
-      fiche.recurring ? 'Budget maximum que le client souhaite mettre par mois.' : 'Budget maximum que le client souhaite mettre.'
+      fiche.recurring ? 'Budget maximum que le client souhaite mettre par mois.' : 'Budget maximum que le client souhaite mettre pour l\'intervention.'
     );
     if (fiche.recurring) {
       doc.fontSize(8.5).fillColor(GREY).text("À l'issue du premier mois, un contrat professionnel pourra vous être proposé.");

@@ -1439,10 +1439,12 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
     let total = hMensuelles * tarifHoraire;
     if (profile.periodiques && profile.periodiques.length) total *= (1.06 + Math.random() * 0.08); // prestations périodiques (vitres, moquette...) ajoutées au forfait
     total *= (0.95 + Math.random() * 0.1);
-    // Un contrat récurrent a un coût mensuel minimum réaliste même pour un
-    // petit volume horaire (déplacement, mise en route, suivi du contrat) :
-    // environ 1000 € pour un professionnel, jamais sous 700 € pour un particulier.
-    const planchierMensuel = type === 'B2B' ? rand(950, 1050) : 700;
+    // Filet de sécurité seulement : l'ajustement réaliste du profil (fréquence
+    // puis durée, voir generer()) doit déjà amener le volume horaire au-dessus
+    // du minimum dans l'immense majorité des cas. Ce plancher ne fait que
+    // garantir qu'aucun budget mensuel ne s'affiche sous 1000 € TTC (pro) ou
+    // 700 € TTC (particulier), jamais en-dessous.
+    const planchierMensuel = type === 'B2B' ? rand(1000, 1050) : 700;
     total = Math.max(total, planchierMensuel);
     return { total: arrondirBudgetClient(total, type), tarifHoraire, heuresMensuelles: hMensuelles };
   }
@@ -1774,15 +1776,14 @@ async function generer() {
   // ponctuelle : même formulation que le cas non urgent pour les deux profils.
   if (recurring) delai = 'dans les 15 prochains jours, à convenir avec le client et le prestataire';
   const freqPool = recurring ? (type === 'B2B' ? (profile.freqPool || FREQUENCES_NETTOYAGE_B2B) : FREQUENCES_NETTOYAGE_B2C) : null;
-  const frequency = recurring ? pick(freqPool) : null;
-  const passagesSemaineNum = recurring ? PASSAGES_PAR_SEMAINE[frequency] : null;
-  const { jours: joursPassage, passagesParMois } = recurring ? pickJoursEtPassages(frequency) : { jours: null, passagesParMois: null };
+  let frequency = recurring ? pick(freqPool) : null;
+  let passagesSemaineNum = recurring ? PASSAGES_PAR_SEMAINE[frequency] : null;
 
   // Moteur de tarification nettoyage dédié (guide Haltiss) : durée interpolée
   // depuis la fourchette de surface/durée de la catégorie, budget calculé
   // selon le mode de facturation (m² / horaire récurrent / horaire ponctuel).
   // Le déménagement, lui, garde entièrement son moteur existant (computePrice).
-  let workers, duration, price, heuresMensuellesVal;
+  let workers, duration, price, heuresMensuellesVal, joursPassage = null, passagesParMois = null;
   const nettoyageUrgent = urgent || Boolean(profile.forceUrgent);
   // Tout le monde raisonne en TTC, professionnel comme particulier.
   const priceUnit = 'TTC';
@@ -1804,11 +1805,50 @@ async function generer() {
     } else {
       duration = interpolerDuree(amount, amountRange, profile.dureeH);
     }
+
+    // Un contrat récurrent ne doit jamais afficher un budget mensuel décorrélé
+    // du volume horaire réel. Plutôt que de gonfler artificiellement le prix,
+    // on ajuste le profil vers un besoin réaliste qui atteint le minimum
+    // (1 000 € TTC/mois pro, 700 € TTC/mois particulier) : d'abord une
+    // fréquence de passage plus soutenue (dans la fourchette de la
+    // catégorie), puis, si cela ne suffit pas, une durée par passage un peu
+    // plus longue, plafonnée à une valeur réaliste.
+    if (recurring) {
+      const floorMensuel = type === 'B2B' ? 1000 : 700;
+      const tarifBracket = profile.tarifHT || profile.tarifTTC;
+      if (tarifBracket) {
+        const tarifBase = ((tarifBracket[0] + tarifBracket[1]) / 2) * coefficientZoneNettoyage(deptCode);
+        const estimer = (dur, n) => dur * n * 4.33 * tarifBase * coefficientRecurrenceNettoyage(n);
+        if (estimer(duration, passagesSemaineNum) < floorMensuel) {
+          const plusFrequentes = freqPool
+            .filter(f => PASSAGES_PAR_SEMAINE[f] > passagesSemaineNum)
+            .sort((a, b) => PASSAGES_PAR_SEMAINE[a] - PASSAGES_PAR_SEMAINE[b]);
+          for (const f of plusFrequentes) {
+            frequency = f;
+            passagesSemaineNum = PASSAGES_PAR_SEMAINE[f];
+            if (estimer(duration, passagesSemaineNum) >= floorMensuel) break;
+          }
+        }
+        if (estimer(duration, passagesSemaineNum) < floorMensuel) {
+          const dureeCap = profile.dureeFamily === 'restaurant' ? 3.5 : profile.dureeFamily === 'particulier' ? 6 : 3;
+          const dureeCible = floorMensuel / (passagesSemaineNum * 4.33 * tarifBase * coefficientRecurrenceNettoyage(passagesSemaineNum));
+          duration = Math.min(dureeCap, Math.max(duration, Math.round(dureeCible * 4) / 4));
+        }
+      }
+    }
+
     heuresMensuellesVal = recurring ? heuresMensuelles(duration, passagesSemaineNum) : null;
     const result = computeNettoyagePrix({
       profile, type, amount, dureeH: duration, passagesSemaine: passagesSemaineNum, recurring,
       urgent: nettoyageUrgent, nbContraintes: constraints.length, departementCode: deptCode,
     });
+    // Jours et passages/mois recalculés ici, après un éventuel ajustement de
+    // fréquence ci-dessus, pour rester cohérents avec la fréquence finale.
+    if (recurring) {
+      const p = pickJoursEtPassages(frequency);
+      joursPassage = p.jours;
+      passagesParMois = p.passagesParMois;
+    }
     price = result.total;
   } else {
     workers = sector.workers(amount);
@@ -1985,9 +2025,9 @@ function afficher(d) {
           ${d.singleSite ? '' : `<li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>`}
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
+          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>` : ''}
           ${d.sector.key === 'nettoyage' && d.duration && !d.pricingModeM2 ? `<li><b>Durée estimée par passage :</b> ${formatHeures(d.duration)}</li>` : ''}
           ${d.heureIntervention ? `<li><b>Horaire d'intervention souhaité :</b> ${d.heureIntervention} (fin de journée)</li>` : ''}
-          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>` : ''}
         </ul>
       </div>
 
@@ -2029,7 +2069,7 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">7. Budget du client</div>
         <div class="budget-single">
-          <div class="budget-single-label">Budget maximum que le client souhaite mettre${d.recurring ? ' par mois' : ''}</div>
+          <div class="budget-single-label">Budget maximum que le client souhaite mettre ${d.recurring ? 'par mois' : 'pour l\'intervention'}</div>
           <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ ${d.priceUnit}</span></div>
         </div>
         ${d.recurring ? `<p class="price-note">À l'issue du premier mois, un contrat professionnel pourra vous être proposé.</p>` : ''}
