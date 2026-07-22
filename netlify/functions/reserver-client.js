@@ -23,15 +23,13 @@ const OFFERS = {
     label: 'Offre Free',
     filename: 'Haltiss-Offre-Free.pdf',
     contentB64: OFFRE_FREE_PDF_B64,
-    mention: (fiche) => `Vous trouverez ci-joint le détail de notre Offre Free (premier mois offert).${
-      fiche.recurring ? ' À l\'issue du premier mois, un contrat professionnel pourra vous être proposé, sous réserve de paiement.' : ''
-    }`,
+    mention: 'Vous trouverez ci-joint le détail de notre Offre Free (premier mois offert).',
   },
   participation: {
     label: 'Offre Participation',
     filename: 'Haltiss-Offre-Participation.pdf',
     contentB64: OFFRE_PARTICIPATION_PDF_B64,
-    mention: () => 'Vous trouverez ci-joint le détail de notre Offre Participation.',
+    mention: 'Vous trouverez ci-joint le détail de notre Offre Participation.',
   },
 };
 
@@ -177,7 +175,7 @@ exports.handler = async (event) => {
       fromAddress: process.env.ZOHO_EMAIL,
       toAddress: email,
       subject: `${tpl.subject} — ${selectedOffer.label}`,
-      content: `${tpl.body(context)}\n\n${selectedOffer.mention(fiche)}\nVous trouverez également la fiche client complète en pièce jointe (PDF).`,
+      content: `${tpl.body(context)}\n\n${selectedOffer.mention}\nVous trouverez également la fiche client complète en pièce jointe (PDF).`,
       mailFormat: 'plaintext',
       attachments: [
         {
