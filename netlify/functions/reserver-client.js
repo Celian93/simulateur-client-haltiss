@@ -42,7 +42,7 @@ Un nouveau client (${c.cat}) recherche un déménageur entre ${c.depart} et ${c.
 
 Prestation : ${c.amount} ${c.unit}. Intervention souhaitée ${c.delai}.
 
-Budget estimé par le client : jusqu'à ${c.price} € TTC.
+Budget estimé par le client : jusqu'à ${c.price} € ${c.priceUnit}.
 
 Ce client vous est réservé sous 24h, sous réserve de votre prise en charge. Merci de nous confirmer votre disponibilité dans les meilleurs délais.
 
@@ -55,7 +55,7 @@ L'équipe Haltiss`,
 Une opportunité de mission vient d'être identifiée pour vous : ${c.cat}, trajet ${c.depart} → ${c.arrivee} (${c.dist} km, ${c.amount} ${c.unit}).
 
 Délai souhaité par le client : ${c.delai}.
-Le client est prêt à mettre jusqu'à ${c.price} € TTC pour cette prestation.
+Le client est prêt à mettre jusqu'à ${c.price} € ${c.priceUnit} pour cette prestation.
 
 Vous disposez de 24h pour prendre en charge ce client, sous réserve de disponibilité de votre part.
 
@@ -68,7 +68,7 @@ L'équipe Haltiss`,
 
 Nous avons une mise en relation à vous proposer : un client (${c.cat}) souhaite déménager de ${c.depart} vers ${c.arrivee} (~${c.dist} km, ${c.amount} ${c.unit}), ${c.delai}.
 
-Budget client indicatif : jusqu'à ${c.price} € TTC.
+Budget client indicatif : jusqu'à ${c.price} € ${c.priceUnit}.
 
 Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Répondez à cet e-mail pour confirmer.
 

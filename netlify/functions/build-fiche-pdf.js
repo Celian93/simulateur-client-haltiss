@@ -29,7 +29,7 @@ function deLabel(word) {
 
 function section(doc, number, title) {
   doc.moveDown(0.8);
-  doc.fillColor(GREEN).fontSize(12).font('Helvetica-Bold').text(`${number}. ${title}`);
+  doc.fillColor(GREEN).fontSize(12).font('Helvetica-Bold').text(number ? `${number}. ${title}` : title);
   doc.fillColor(DARK).moveDown(0.3);
 }
 
@@ -121,6 +121,10 @@ async function buildFichePdf(fiche) {
       line(doc, `Nombre ${deLabel(fiche.role)} conseillé`, fiche.workers);
       line(doc, fiche.equipmentLabel, fiche.equipment);
       line(doc, 'Durée estimée de l\'intervention', fiche.duration);
+      if (fiche.exclusions && fiche.exclusions.length) {
+        section(doc, null, 'Exclusions');
+        fiche.exclusions.forEach((e) => bullet(doc, e));
+      }
     } else if (fiche.exclusions && fiche.exclusions.length) {
       section(doc, 6, 'Exclusions');
       fiche.exclusions.forEach((e) => bullet(doc, e));

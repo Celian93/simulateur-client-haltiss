@@ -674,14 +674,24 @@ const B2C_DEMENAGEMENT = [
   ]},
 ];
 
+const EXCLUSIONS_DEMENAGEMENT = [
+  'Le démontage et le remontage des meubles ou équipements fixés au mur ne sont pas compris.',
+  'Le débranchement et la remise en service des appareils électroménagers ou informatiques ne sont pas compris, seul leur transport l\'est.',
+  'Le transport d\'objets de valeur, de documents sensibles ou d\'espèces reste sous la responsabilité du client.',
+  'L\'installation ou le raccordement des appareils électroménagers dans le nouveau logement n\'est pas compris.',
+];
+
 const CONTRAINTES_DEMENAGEMENT = [
-  'Accès livraison à confirmer avec le gardien',
-  'Intervention souhaitée en matinée','Quelques objets à protéger avec couvertures',
-  'Ascenseur présent mais petit (90×110 cm)',
-  'Code d\'entrée à obtenir','Fin de bail à respecter impérativement',
-  'Monte-meuble probablement nécessaire',
-  'Voisinage à respecter (pas d\'intervention avant 8h)','Prestataire devra fournir les cartons',
-  'Matériel informatique à sécuriser',
+  'L\'accès pour la livraison doit être confirmé au préalable avec le gardien de l\'immeuble.',
+  'L\'intervention doit débuter avant 12h.',
+  'Le mobilier fragile doit être protégé avec des couvertures avant le transport.',
+  'L\'ascenseur est présent mais de petite taille (90×110 cm), à vérifier pour le passage des meubles.',
+  'Un code d\'entrée doit être obtenu avant le jour du déménagement.',
+  'La prestation doit être terminée avant l\'état des lieux de fin de bail.',
+  'Un monte-meuble est probablement nécessaire compte tenu de l\'accès.',
+  'Le voisinage doit être respecté : pas d\'intervention avant 8h.',
+  'Le prestataire doit fournir les cartons de déménagement.',
+  'Le matériel informatique doit être débranché et sécurisé avant le transport.',
 ];
 
 // Familles de tarification nettoyage B2B (repères HT du marché français,
@@ -703,9 +713,21 @@ function b2bCat(cat, famille, overrides) {
   return { cat, recurring:true, niveau:'Standard', ...FAMILLES_B2B_NETTOYAGE[famille], ...overrides };
 }
 
-const EXCLUSIONS_BUREAU = ['Déplacement de mobilier lourd', 'Nettoyage de documents ou dossiers confidentiels', 'Vaisselle personnelle'];
-const EXCLUSIONS_COMMERCE = ['Vitres en hauteur', 'Débarras d\'encombrants', 'Déplacement de mobilier lourd'];
-const EXCLUSIONS_RESTAURANT = ['Hotte et conduits d\'extraction', 'Bac à graisse', 'Désinsectisation et dératisation'];
+const EXCLUSIONS_BUREAU = [
+  'Le déplacement de mobilier lourd n\'est pas compris.',
+  'Le tri ou le nettoyage des documents et dossiers confidentiels n\'est pas compris.',
+  'Le lavage de la vaisselle personnelle des collaborateurs n\'est pas compris.',
+];
+const EXCLUSIONS_COMMERCE = [
+  'Le nettoyage des vitres en hauteur n\'est pas compris.',
+  'L\'évacuation des encombrants laissés sur place n\'est pas comprise.',
+  'Le déplacement de mobilier lourd n\'est pas compris.',
+];
+const EXCLUSIONS_RESTAURANT = [
+  'Le nettoyage de la hotte, des filtres et des conduits d\'extraction n\'est pas compris.',
+  'Le nettoyage du bac à graisse n\'est pas compris.',
+  'La désinsectisation et la dératisation ne sont pas comprises.',
+];
 const NIVEAU_NOTE_VERIF = 'Vérifier les produits, le matériel, la formation et l\'expérience du partenaire avant la mise en relation.';
 
 const B2B_NETTOYAGE = [
@@ -734,7 +756,7 @@ const B2B_NETTOYAGE = [
   b2bCat('Société informatique', 'bureau', { sizeUnit:'collaborateur', size:[5,25], amountBase:[100,220],
     items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[2,5],f:false},{n:'Nettoyage kitchenette',q:[1,2],f:false},{n:'Lavage des sols durs',q:[2,6],f:false}],
     periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
-    exclusions: ['Écrans et équipements informatiques', 'Déplacement de mobilier lourd'] }),
+    exclusions: ['Le nettoyage des écrans, ordinateurs et équipements informatiques n\'est pas demandé.', 'Le déplacement de mobilier lourd n\'est pas compris.'] }),
   b2bCat('Agence immobilière', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,8], amountBase:[45,100],
     items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
     periodiques:[{n:'Nettoyage approfondi de l\'accueil',cadence:'hebdomadaire'},{n:'Vitrine',cadence:'mensuel'}],
@@ -802,7 +824,11 @@ const B2B_NETTOYAGE = [
   { cat:'Local après travaux', recurring:false, niveau:'Standard', pricingMode:'m2', tarifM2HT:[4,10], amountBase:[80,220],
     items:[{n:'Évacuation de la poussière fine',q:[1,1],f:false},{n:'Nettoyage des sols',q:[4,10],f:false},{n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false}],
     extra:['Poussière de chantier', 'Protection des sols à prévoir'],
-    exclusions: ['Amiante ou plomb (visite obligatoire)', 'Gravats lourds', 'Débarras de gravats', 'Nacelle ou travail en hauteur'] },
+    exclusions: [
+      'La présence d\'amiante ou de plomb n\'est pas prise en charge : une visite préalable est obligatoire dans ce cas.',
+      'Le retrait des gravats lourds n\'est pas compris.',
+      'Le travail en nacelle ou en hauteur n\'est pas compris.',
+    ] },
 ];
 
 // Côté particulier, un ménage à domicile reste dans un rythme domestique
@@ -867,7 +893,11 @@ const B2C_NETTOYAGE = [
       {n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
     ],
     periodiques:[{n:'Vitres intérieures',cadence:'mensuel'},{n:'Changement des draps',cadence:'hebdomadaire'}],
-    exclusions:['Repassage (sauf si le temps prévu le permet)','Nettoyage intérieur des appareils électroménagers','Vitres en hauteur'] },
+    exclusions:[
+      'Le repassage du linge n\'est pas compris dans la prestation (sauf si le temps prévu le permet).',
+      'Le nettoyage intérieur du four et du réfrigérateur n\'est pas compris dans l\'entretien récurrent.',
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+    ] },
   { cat:'Grand ménage de printemps', amount:[70,140], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[32,42], dureeH:[5,10],
     items:[
@@ -875,7 +905,11 @@ const B2C_NETTOYAGE = [
       {n:'Nettoyage des sols',q:[4,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},
       {n:'Nettoyage électroménager',q:[2,4],f:false},
     ],
-    exclusions:['Vitres en hauteur','Nettoyage intérieur des appareils électroménagers','Débarras d\'encombrants'] },
+    exclusions:[
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+      'Le nettoyage intérieur du four et du réfrigérateur n\'est pas compris.',
+      'L\'évacuation des meubles et des encombrants laissés dans le logement n\'est pas comprise.',
+    ] },
   { cat:'Nettoyage fin de bail', amount:[30,80], typeLocaux:'Appartement', extra:['Logement vide','État des lieux à respecter'],
     pricingMode:'horaire_ponctuel', tarifTTC:[30,40], dureeH:[4,8],
     items:[
@@ -883,7 +917,11 @@ const B2C_NETTOYAGE = [
       {n:'Nettoyage cuisine complète',q:[1,1],f:false},{n:'Nettoyage des placards',q:[3,8],f:false},
       {n:'Vitres',q:[3,8],f:false},
     ],
-    exclusions:['Débarras d\'encombrants','Nettoyage après sinistre','Vitres en hauteur'] },
+    exclusions:[
+      'L\'évacuation des meubles et des encombrants laissés dans le logement n\'est pas comprise.',
+      'Le nettoyage après un sinistre (dégât des eaux, incendie) n\'est pas compris dans une fin de bail classique.',
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+    ] },
   { cat:'Nettoyage après travaux', amount:[40,100], typeLocaux:'Maison', extra:['Poussière de chantier','Protection des sols à prévoir'],
     pricingMode:'m2', tarifM2TTC:[5,8], niveau:'Compétences à vérifier', niveauNote:NIVEAU_NOTE_VERIF,
     items:[
@@ -891,7 +929,11 @@ const B2C_NETTOYAGE = [
       {n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},
       {n:'Dépoussiérage des surfaces',q:[4,10],f:false},
     ],
-    exclusions:['Amiante ou plomb (visite obligatoire)','Gravats lourds','Solvants ou résidus dangereux'] },
+    exclusions:[
+      'La présence d\'amiante ou de plomb n\'est pas prise en charge : une visite préalable est obligatoire dans ce cas.',
+      'Le retrait des gravats et des pots de peinture après les travaux n\'est pas compris.',
+      'Le nettoyage de solvants ou de résidus dangereux n\'est pas compris.',
+    ] },
   { cat:'Nettoyage avant emménagement', amount:[35,70], typeLocaux:'Appartement',
     pricingMode:'horaire_ponctuel', tarifTTC:[30,38], dureeH:[3,6],
     items:[
@@ -899,27 +941,39 @@ const B2C_NETTOYAGE = [
       {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,6],f:false},
       {n:'Nettoyage des placards',q:[2,6],f:false},
     ],
-    exclusions:['Vitres en hauteur','Nettoyage intérieur des appareils électroménagers'] },
+    exclusions:[
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+      'Le nettoyage intérieur du four et du réfrigérateur n\'est pas compris.',
+    ] },
   { cat:'Remise en état — départ locataire', amount:[30,70], typeLocaux:'Appartement', extra:['Restitution des clés au gardien ou à l\'agence'],
     pricingMode:'horaire_ponctuel', tarifTTC:[30,40], dureeH:[4,7],
     items:[
       {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},
       {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,5],f:false},
     ],
-    exclusions:['Débarras d\'encombrants','Nettoyage après sinistre'] },
+    exclusions:[
+      'L\'évacuation des meubles et des encombrants laissés dans le logement n\'est pas comprise.',
+      'Le nettoyage après un sinistre (dégât des eaux, incendie) n\'est pas compris.',
+    ] },
   { cat:'Nettoyage tapis et moquettes', amount:[15,40], typeLocaux:'Maison',
     pricingMode:'m2', tarifM2TTC:[5,10],
     items:[
       {n:'Shampouinage moquette',q:[1,3],f:false},{n:'Traitement des taches',q:[1,4],f:false},
       {n:'Nettoyage sols annexes',q:[1,3],f:false},
     ],
-    exclusions:['Décapage ou métallisation (devis séparé)','Taches anciennes non garanties'] },
+    exclusions:[
+      'Le décapage ou la métallisation des sols durs n\'est pas compris (devis séparé si nécessaire).',
+      'La disparition complète des taches anciennes ou incrustées n\'est pas garantie.',
+    ] },
   { cat:'Nettoyage de vitres', amount:[10,25], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[25,40], dureeH:[2,4],
     items:[
       {n:'Nettoyage des vitres accessibles',q:[8,16],f:false},{n:'Nettoyage des baies vitrées',q:[1,3],f:false},
     ],
-    exclusions:['Vitres en hauteur','Nacelle ou travail en hauteur'] },
+    exclusions:[
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+      'Le travail en nacelle ou en hauteur n\'est pas compris.',
+    ] },
   { cat:'Ménage occasionnel — grande maison', amount:[80,140], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[32,40], dureeH:[6,10],
     items:[
@@ -927,24 +981,32 @@ const B2C_NETTOYAGE = [
       {n:'Sanitaires à nettoyer et désinfecter',q:[2,4],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
       {n:'Vitres',q:[6,14],f:false},
     ],
-    exclusions:['Vitres en hauteur','Débarras d\'encombrants'] },
+    exclusions:[
+      'Le nettoyage des vitres en hauteur n\'est pas compris.',
+      'L\'évacuation des meubles et des encombrants laissés dans la maison n\'est pas comprise.',
+    ] },
   { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], typeLocaux:'Appartement', extra:['Zone humide à traiter avec précaution'],
     pricingMode:'horaire_ponctuel', tarifTTC:[32,42], dureeH:[3,6], forceUrgent:true,
     items:[
       {n:'Extraction eau / humidité',q:[1,1],f:false},{n:'Nettoyage des sols',q:[3,8],f:false},
       {n:'Désinfection',q:[2,5],f:false},{n:'Nettoyage du mobilier touché',q:[2,6],f:false},
     ],
-    exclusions:['Travaux de plomberie','Traitement de moisissures structurelles','Nettoyage après sinistre majeur (à qualifier après visite)'] },
+    exclusions:[
+      'Les travaux de plomberie (réparation de fuite) ne sont pas compris, seul le nettoyage l\'est.',
+      'Le traitement des moisissures structurelles n\'est pas compris et doit être qualifié après visite.',
+    ] },
 ];
 
 const CONTRAINTES_NETTOYAGE = [
-  'Intervention à réaliser hors présence du client','Clés à récupérer auprès du gardien',
-  'Alarme à désactiver puis réactiver','Accès par badge à prévoir',
-  'Produits sans parfum ou allergènes à confirmer avec le client',
-  'Code d\'entrée à obtenir',
-  'Intervention souhaitée en soirée','Zones sensibles à signaler avant intervention',
-  'Confidentialité des documents à respecter','Prestation à renouveler chaque semaine',
-  'Accès livraison à confirmer avec le gardien',
+  'L\'intervention doit être réalisée hors présence du client.',
+  'Les clés doivent être récupérées auprès du gardien avant l\'intervention.',
+  'L\'alarme doit être désactivée à l\'arrivée puis réactivée après le passage.',
+  'L\'accès aux locaux se fait par badge, à prévoir avant la première intervention.',
+  'Les produits utilisés doivent être sans parfum ou les allergènes confirmés avec le client.',
+  'Un code d\'entrée doit être obtenu avant la première intervention.',
+  'Les interventions doivent être réalisées en soirée, après la fermeture.',
+  'Les documents et dossiers présents ne doivent pas être déplacés.',
+  'L\'accès au local doit être confirmé au préalable avec le gardien de l\'immeuble.',
 ];
 
 const SECTORS = {
@@ -959,6 +1021,7 @@ const SECTORS = {
     B2B: B2B_DEMENAGEMENT,
     B2C: B2C_DEMENAGEMENT,
     contraintes: CONTRAINTES_DEMENAGEMENT,
+    exclusionsPool: EXCLUSIONS_DEMENAGEMENT,
     // Calibré sur les tarifs réels du marché français du déménagement (2024-2025) :
     // ~350-700 € pour un studio/2 pièces, ~900-1500 € pour une maison, majoré par
     // km/heures de main-d'œuvre plutôt que par un forfait de base élevé.
@@ -1507,11 +1570,13 @@ async function generer() {
         amount = Math.min(Math.max(amount, profile.amountBase[0]), profile.amountBase[1]);
       }
     }
-    constraints = pickN(sector.contraintes, rand(2, 4));
+    // Pas de contrainte pour environ 1 fiche sur 6 : n'afficher la rubrique que
+    // lorsqu'il y a réellement une précision utile à donner (guide § règle finale).
+    constraints = Math.random() < 0.15 ? [] : pickN(sector.contraintes, rand(1, 3));
   } else {
     for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
     amount = rand(...profile.amount);
-    constraints = [...(profile.extra || []), ...pickN(sector.contraintes, rand(1, 3))];
+    constraints = [...(profile.extra || []), ...(Math.random() < 0.2 ? [] : pickN(sector.contraintes, rand(1, 2)))];
   }
 
   items = items.filter(i => i.q > 0);
@@ -1560,9 +1625,8 @@ async function generer() {
     (type === 'B2B' && profile.recurring !== false)
   );
   // Un contrat récurrent ne se démarre pas "sous 48h" comme une urgence
-  // ponctuelle : la date souhaitée porte sur le démarrage du contrat, pas sur
-  // une intervention immédiate.
-  if (recurring) delai = 'dans les prochaines semaines, date de démarrage du contrat à convenir';
+  // ponctuelle : même formulation que le cas non urgent pour les deux profils.
+  if (recurring) delai = 'dans les 15 prochains jours, à convenir avec le client et le prestataire';
   const freqPool = recurring ? (type === 'B2B' ? (profile.freqPool || FREQUENCES_NETTOYAGE_B2B) : FREQUENCES_NETTOYAGE_B2C) : null;
   const frequency = recurring ? pick(freqPool) : null;
   const passagesSemaineNum = recurring ? PASSAGES_PAR_SEMAINE[frequency] : null;
@@ -1579,7 +1643,9 @@ async function generer() {
   // Le déménagement, lui, garde entièrement son moteur existant (computePrice).
   let workers, duration, price, heuresMensuellesVal;
   const nettoyageUrgent = urgent || Boolean(profile.forceUrgent);
-  const priceUnit = singleSite ? (type === 'B2B' ? 'HT' : 'TTC') : 'TTC';
+  // Un professionnel raisonne en HT, un particulier en TTC — quel que soit le
+  // secteur (nettoyage ou déménagement).
+  const priceUnit = type === 'B2B' ? 'HT' : 'TTC';
   const pricingModeM2 = singleSite && profile.pricingMode === 'm2';
   if (singleSite) {
     const amountRange = type === 'B2B' ? profile.amountBase : profile.amount;
@@ -1612,7 +1678,9 @@ async function generer() {
 
   const clientName = singleSite ? generateContactRoleGenerique() : generateContactName();
   const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
-  const exclusions = singleSite && profile.exclusions ? pickN(profile.exclusions, Math.min(rand(1, 3), profile.exclusions.length)) : [];
+  const exclusions = Math.random() < 0.15 ? [] : (profile.exclusions
+    ? pickN(profile.exclusions, Math.min(rand(1, 2), profile.exclusions.length))
+    : (sector.exclusionsPool ? pickN(sector.exclusionsPool, rand(1, 2)) : []));
   const creditImpot = singleSite && Boolean(profile.creditImpot);
   const niveau = singleSite ? (profile.niveau || 'Standard') : null;
   const niveauNote = singleSite ? (profile.niveauNote || null) : null;
@@ -1800,7 +1868,12 @@ function afficher(d) {
           <li><b>${d.sector.equipmentLabel} :</b> ${d.sector.equipment(d.amount)}</li>
           <li><b>Durée estimée de l'intervention :</b> ${formatDuration(d.duration)}</li>
         </ul>
-      </div>` : (d.exclusions && d.exclusions.length ? `
+      </div>
+      ${d.exclusions && d.exclusions.length ? `
+      <div class="section">
+        <div class="section-title">Exclusions</div>
+        <div class="tags">${d.exclusions.map(e => `<span class="tag">${e}</span>`).join('')}</div>
+      </div>` : ''}` : (d.exclusions && d.exclusions.length ? `
       <div class="section">
         <div class="section-title">6. Exclusions</div>
         <div class="tags">${d.exclusions.map(e => `<span class="tag">${e}</span>`).join('')}</div>
