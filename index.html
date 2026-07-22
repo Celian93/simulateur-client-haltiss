@@ -734,47 +734,53 @@ const B2B_NETTOYAGE = [
 ];
 
 const FREQUENCES_NETTOYAGE = ['1 fois par semaine', '2 fois par semaine', 'Toutes les 2 semaines', '1 fois par mois'];
+const FREQUENCE_MENSUEL = {
+  '1 fois par semaine': 4,
+  '2 fois par semaine': 8,
+  'Toutes les 2 semaines': 2,
+  '1 fois par mois': 1,
+};
 
 const B2C_NETTOYAGE = [
-  { cat:'Ménage récurrent — appartement', amount:[40,70], recurring:true, items:[
+  { cat:'Ménage récurrent — appartement', amount:[40,70], recurring:true, typeLocaux:'Appartement', items:[
     {n:'Dépoussiérage',q:[3,5],f:false},{n:'Lavage des sols',q:[3,5],f:false},
     {n:'Nettoyage sanitaires',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
     {n:'Vitres intérieures',q:[2,6],f:false},
   ]},
-  { cat:'Grand ménage de printemps', amount:[50,90], items:[
+  { cat:'Grand ménage de printemps', amount:[50,90], typeLocaux:'Maison', items:[
     {n:'Vitres intérieures et extérieures',q:[4,10],f:false},{n:'Dépoussiérage en profondeur',q:[4,8],f:false},
     {n:'Nettoyage des sols',q:[4,8],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
     {n:'Nettoyage électroménager',q:[2,4],f:false},
   ]},
-  { cat:'Nettoyage fin de bail', amount:[30,80], extra:['Logement vide','État des lieux à respecter'], items:[
+  { cat:'Nettoyage fin de bail', amount:[30,80], typeLocaux:'Appartement', extra:['Logement vide','État des lieux à respecter'], items:[
     {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
     {n:'Nettoyage cuisine complète',q:[1,1],f:false},{n:'Nettoyage des placards',q:[3,8],f:false},
     {n:'Vitres',q:[3,8],f:false},
   ]},
-  { cat:'Nettoyage après travaux', amount:[40,100], extra:['Poussière de chantier','Protection des sols à prévoir'], items:[
+  { cat:'Nettoyage après travaux', amount:[40,100], typeLocaux:'Maison', extra:['Poussière de chantier','Protection des sols à prévoir'], items:[
     {n:'Évacuation de la poussière fine',q:[1,1],f:false},{n:'Nettoyage des sols',q:[4,10],f:false},
     {n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Nettoyage sanitaires',q:[1,3],f:false},
     {n:'Dépoussiérage des surfaces',q:[4,10],f:false},
   ]},
-  { cat:'Nettoyage avant emménagement', amount:[35,70], items:[
+  { cat:'Nettoyage avant emménagement', amount:[35,70], typeLocaux:'Appartement', items:[
     {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,2],f:false},
     {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,6],f:false},
     {n:'Nettoyage des placards',q:[2,6],f:false},
   ]},
-  { cat:'Remise en état — départ locataire', amount:[30,70], extra:['Restitution des clés au gardien ou à l\'agence'], items:[
+  { cat:'Remise en état — départ locataire', amount:[30,70], typeLocaux:'Appartement', extra:['Restitution des clés au gardien ou à l\'agence'], items:[
     {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Nettoyage sanitaires',q:[1,2],f:false},
     {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,5],f:false},
   ]},
-  { cat:'Nettoyage tapis et moquettes', amount:[15,40], items:[
+  { cat:'Nettoyage tapis et moquettes', amount:[15,40], typeLocaux:'Maison', items:[
     {n:'Shampouinage moquette',q:[1,3],f:false},{n:'Traitement des taches',q:[1,4],f:false},
     {n:'Nettoyage sols annexes',q:[1,3],f:false},
   ]},
-  { cat:'Ménage occasionnel — grande maison', amount:[80,150], items:[
+  { cat:'Ménage occasionnel — grande maison', amount:[80,150], typeLocaux:'Maison', items:[
     {n:'Dépoussiérage',q:[6,12],f:false},{n:'Nettoyage des sols',q:[6,12],f:false},
     {n:'Nettoyage sanitaires',q:[2,4],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
     {n:'Vitres',q:[6,14],f:false},
   ]},
-  { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], extra:['Zone humide à traiter avec précaution'], items:[
+  { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], typeLocaux:'Appartement', extra:['Zone humide à traiter avec précaution'], items:[
     {n:'Extraction eau / humidité',q:[1,1],f:false},{n:'Nettoyage des sols',q:[3,8],f:false},
     {n:'Désinfection',q:[2,5],f:false},{n:'Nettoyage du mobilier touché',q:[2,6],f:false},
   ]},
@@ -832,7 +838,7 @@ const SECTORS = {
     // Calibré sur les tarifs réels du marché français du nettoyage (2024-2025) :
     // ~3 à 6 €/m² pour une prestation ponctuelle standard, un peu plus pour du
     // fin de bail / post-travaux, avec un forfait minimum d'intervention.
-    price: { base: 70, unitRate: 3, distRate: 1.5, workerRate: 22, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
+    price: { base: 70, unitRate: 3, distRate: 0, workerRate: 22, urgentMult: 1.20, weekendMult: 1.15, floor: 90 },
     workers: amount => amount < 60 ? rand(1, 2) : amount < 180 ? rand(2, 3) : rand(3, 4),
     duration: (amount, dist, workers) => Math.max(2, Math.round((amount / 25 + dist * 0.05) / workers)),
     categorize: categorizeItemNettoyage,
@@ -1002,6 +1008,16 @@ function computePrice(sector, amount, dist, workers, duration, urgent, weekend) 
   base *= (0.9 + Math.random() * 0.3); // ±variance réaliste selon le prestataire/l'état du bien
   base = Math.max(base, p.floor);
   return Math.round(base / 10) * 10;
+}
+
+// Tarif d'UNE prestation de ménage récurrent (femme de ménage à domicile),
+// bien plus bas qu'un chantier ponctuel : ~20-28 €/h en moyenne sur le
+// marché français, pas de forfait de base ni de kilométrage — le prix
+// affiché est celui d'un seul passage, pas d'un abonnement mensuel.
+function computeRecurringNettoyagePrice(workers, duration) {
+  const hourlyRate = 20 + Math.random() * 8;
+  const price = Math.max(workers * duration * hourlyRate, 35);
+  return Math.round(price / 5) * 5;
 }
 
 // ── LOCALISATION (code postal → commune / département / région / pays) ────────
@@ -1194,17 +1210,13 @@ async function generer() {
   const dispo = Math.random() < 0.9 ? 'sous 24h' : 'sous 48h';
   const weekend = Math.random() > 0.78;
 
-  // Distance réelle (à vol d'oiseau + correction routière) si les coordonnées sont
-  // disponibles, sinon estimation raisonnable en repli. Pour le nettoyage (site
-  // unique), la distance représente le trajet du prestataire depuis sa propre
-  // localisation jusqu'au site du client — pas un trajet entre deux adresses
-  // client comme pour un déménagement.
+  // Distance réelle (à vol d'oiseau + correction routière) uniquement pour le
+  // déménagement, où elle représente le trajet entre les deux adresses client.
+  // Le nettoyage se déroule sur un seul site : il n'y a pas de notion de
+  // kilométrage à afficher ni à faire entrer dans le prix.
   const coords = resolvedLocation && resolvedLocation.zoneCoords;
-  const ownCoords = resolvedLocation && resolvedLocation.ownCoords;
-  const realDist = singleSite
-    ? (coords && ownCoords ? realDistanceKm(ownCoords, coords[arrivee]) : null)
-    : (coords ? realDistanceKm(coords[depart], coords[arrivee]) : null);
-  const dist = realDist !== null ? realDist : rand(3, 35);
+  const realDist = singleSite ? null : (coords ? realDistanceKm(coords[depart], coords[arrivee]) : null);
+  const dist = singleSite ? 0 : (realDist !== null ? realDist : rand(3, 35));
 
   // Adresse(s) : une seule pour le nettoyage (site d'intervention), deux
   // distinctes (départ/arrivée) pour le déménagement.
@@ -1224,12 +1236,23 @@ async function generer() {
   // Fréquence de prestation pour le nettoyage particulier récurrent (les
   // autres catégories nettoyage B2C sont ponctuelles : fin de bail, après
   // travaux, dégât des eaux... et n'ont pas de fréquence à demander).
-  const frequency = (singleSite && type === 'B2C' && profile.recurring) ? pick(FREQUENCES_NETTOYAGE) : null;
+  const recurring = singleSite && type === 'B2C' && profile.recurring;
+  const frequency = recurring ? pick(FREQUENCES_NETTOYAGE) : null;
+  const passagesParMois = recurring ? FREQUENCE_MENSUEL[frequency] : null;
 
-  // Le prix tient compte de la difficulté d'accès à l'arrivée (portage le plus contraignant)
-  const workers = sector.workers(amount);
+  // Type de locaux : explicite pour le nettoyage particulier (chaque catégorie
+  // B2C précise le type de bien concerné) ; pour le B2B, le libellé de
+  // catégorie décrit déjà le type de locaux (bureaux, cabinet médical...).
+  const typeLocaux = singleSite ? (profile.typeLocaux || cat) : null;
+
+  // Une prestation de ménage récurrent se facture par passage (femme de
+  // ménage à domicile) : un tarif horaire nettement plus bas qu'un chantier
+  // ponctuel, sur une durée plus courte, sans notion de kilométrage.
+  const workers = recurring ? 1 : sector.workers(amount);
   const duration = sector.duration(amount, dist, workers);
-  const price = computePrice(sector, amount, dist, workers, duration, urgent, weekend);
+  const price = recurring
+    ? computeRecurringNettoyagePrice(workers, duration)
+    : computePrice(sector, amount, dist, workers, duration, urgent, weekend);
 
   const clientName = generateContactName();
   const derivedConstraints = [...constraints, ...contraintesDerivees(items)];
@@ -1246,7 +1269,7 @@ async function generer() {
   afficher({
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, delai, dispo, workers, duration, price,
-    urgent, weekend, clientName, singleSite, frequency,
+    urgent, weekend, clientName, singleSite, frequency, passagesParMois, recurring, typeLocaux,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
@@ -1284,6 +1307,9 @@ function buildFicheData(d) {
     dist: d.dist,
     delai: d.delai,
     frequency: d.frequency || null,
+    passagesParMois: d.passagesParMois || null,
+    recurring: Boolean(d.recurring),
+    typeLocaux: d.typeLocaux || null,
     amountLabel: d.sector.amountLabel,
     amount: d.amount,
     unit: d.sector.unit,
@@ -1350,7 +1376,7 @@ function afficher(d) {
       <div class="fiche-title">${ficheTitle}</div>
       <span class="badge ${d.type === 'B2B' ? 'b2b' : 'b2c'}">${d.type === 'B2B' ? 'Professionnel' : 'Particulier'}</span>
       <div class="result-title">${d.cat}</div>
-      <div class="result-sub">${d.singleSite ? d.arrivee : `${d.depart} → ${d.arrivee}`} · ~${d.dist} km · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
+      <div class="result-sub">${d.singleSite ? d.arrivee : `${d.depart} → ${d.arrivee} · ~${d.dist} km`} · ${d.amount} ${d.sector.unit} · ${d.workers} ${role} · ${d.duration}h</div>
       ${flags ? `<div class="flags">${flags}</div>` : ''}
 
       <div class="ai-context" id="ai-context"></div>
@@ -1367,10 +1393,11 @@ function afficher(d) {
           ${addressBlock(d.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator)}
         </div>
         <ul class="kv-list">
-          <li><b>${d.singleSite ? 'Distance depuis le prestataire' : 'Distance entre les deux sites'} :</b> ${String(d.dist).replace('.', ',')} km</li>
+          ${d.typeLocaux ? `<li><b>Type de locaux :</b> ${d.typeLocaux}</li>` : ''}
+          ${d.singleSite ? '' : `<li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>`}
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
-          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency}</li>` : ''}
+          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} (~${d.passagesParMois} passages/mois)</li>` : ''}
         </ul>
       </div>
 
@@ -1402,10 +1429,10 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">7. Budget du client</div>
         <div class="budget-single">
-          <div class="budget-single-label">Budget maximum que le client souhaite mettre</div>
+          <div class="budget-single-label">Budget maximum que le client souhaite mettre${d.recurring ? ' par intervention' : ''}</div>
           <div class="budget-single-value">${d.price.toLocaleString('fr-FR')} <span class="budget-suffix">€ TTC</span></div>
         </div>
-        <p class="price-note">Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.</p>
+        <p class="price-note">${d.recurring ? `Montant par passage (${d.frequency}) — pas un forfait mensuel global. ` : ''}Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.</p>
       </div>
 
       <div class="section reserve-block">
@@ -1463,6 +1490,7 @@ async function chargerContexteIA(d) {
         amount: d.amount,
         unit: d.sector.unit,
         delai: d.delai,
+        frequency: d.frequency,
         itemsSummary: topItems,
         clientLabel,
       }),

@@ -19,21 +19,22 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { sector, cat, depart, arrivee, dist, amount, unit, delai, itemsSummary, clientLabel } = payload;
+  const { sector, cat, depart, arrivee, dist, amount, unit, delai, frequency, itemsSummary, clientLabel } = payload;
   if (!cat || !arrivee) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Données de fiche manquantes' }) };
   }
 
   const secteurLabel = sector === 'nettoyage' ? 'nettoyage' : 'déménagement';
-  // Le nettoyage se déroule sur un seul site (pas de trajet A→B comme un
-  // déménagement) : depart est alors absent.
-  const lieuDescription = depart ? `trajet ${depart} → ${arrivee} (${dist} km)` : `site à ${arrivee} (${dist} km depuis le prestataire)`;
+  // Le nettoyage se déroule sur un seul site (pas de trajet A→B, pas de
+  // kilométrage) : depart et dist sont alors absents.
+  const lieuDescription = depart ? `trajet ${depart} → ${arrivee} (${dist} km)` : `site à ${arrivee}`;
+  const frequenceDescription = frequency ? `, fréquence souhaitée "${frequency}"` : '';
 
   const prompt = `Tu rédiges un court paragraphe (4 à 5 phrases) décrivant, pour un agent de liaison Haltiss, une situation client fictive dans le secteur du ${secteurLabel}.
 
 Contraintes strictes à respecter absolument :
 - N'invente AUCUN nom d'entreprise ni de personne. Désigne le client uniquement par : "${clientLabel}".
-- Ne modifie et n'invente AUCUN chiffre. Reprends exactement, sans les changer, ces données : ${lieuDescription}, ${amount} ${unit}, délai souhaité "${delai}".
+- Ne modifie et n'invente AUCUN chiffre. Reprends exactement, sans les changer, ces données : ${lieuDescription}, ${amount} ${unit}${frequenceDescription}, délai souhaité "${delai}".
 - Ne mentionne aucun prix (déjà affiché ailleurs sur la fiche).
 - Catégorie : ${cat}. Principaux éléments concernés : ${itemsSummary}.
 - Ton naturel et professionnel, formulation différente à chaque fois : évite les tournures déjà utilisées habituellement.

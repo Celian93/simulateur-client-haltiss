@@ -81,11 +81,11 @@ const TEMPLATES_NETTOYAGE = [
     subject: 'Un client nettoyage vous attend — réponse sous 24h',
     body: (c) => `Bonjour,
 
-Un nouveau client (${c.cat}) recherche un prestataire de nettoyage à ${c.arrivee} (environ ${c.dist} km depuis chez vous).
+Un nouveau client (${c.cat}) recherche un prestataire de nettoyage à ${c.arrivee}.
 
-Prestation : ${c.amount} ${c.unit}. Intervention souhaitée ${c.delai}.
+Prestation : ${c.amount} ${c.unit}${c.frequencyNote}. Intervention souhaitée ${c.delai}.
 
-Budget estimé par le client : jusqu'à ${c.price} € TTC.
+Budget estimé par le client : jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''}.
 
 Ce client vous est réservé sous 24h, sous réserve de votre prise en charge. Merci de confirmer votre disponibilité rapidement.
 
@@ -95,10 +95,10 @@ L'équipe Haltiss`,
     subject: 'Nouvelle demande de prestation de nettoyage',
     body: (c) => `Bonjour,
 
-Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé à ${c.arrivee} (${c.dist} km depuis chez vous, ${c.amount} ${c.unit}).
+Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé à ${c.arrivee} (${c.amount} ${c.unit}${c.frequencyNote}).
 
 Délai souhaité par le client : ${c.delai}.
-Le client est prêt à mettre jusqu'à ${c.price} € TTC pour cette prestation.
+Le client est prêt à mettre jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''} pour cette prestation.
 
 Vous disposez de 24h pour prendre en charge ce client, sous réserve de disponibilité de votre part.
 
@@ -109,9 +109,9 @@ L'équipe Haltiss`,
     subject: 'Mise en relation nettoyage — à traiter sous 24h',
     body: (c) => `Bonjour,
 
-Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (~${c.dist} km depuis chez vous, ${c.amount} ${c.unit}), ${c.delai}.
+Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (${c.amount} ${c.unit}${c.frequencyNote}), ${c.delai}.
 
-Budget client indicatif : jusqu'à ${c.price} € TTC.
+Budget client indicatif : jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''}.
 
 Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Répondez à cet e-mail pour confirmer.
 
@@ -155,6 +155,8 @@ exports.handler = async (event) => {
     dist: dist ?? '',
     amount: amount ?? '',
     unit: unit || '',
+    recurring: Boolean(fiche.recurring),
+    frequencyNote: fiche.frequency ? `, ${fiche.frequency}` : '',
     delai: delai || 'à convenir',
     price: Number(price || 0).toLocaleString('fr-FR'),
   };

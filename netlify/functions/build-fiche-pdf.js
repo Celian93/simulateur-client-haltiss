@@ -59,9 +59,9 @@ async function buildFichePdf(fiche) {
     doc.fillColor(GREY).fontSize(11).font('Helvetica').text(fiche.type === 'B2B' ? 'Profil : Professionnel' : 'Profil : Particulier');
     doc.moveDown(0.5);
     doc.fillColor(DARK).fontSize(13).font('Helvetica-Bold').text(fiche.cat);
-    const routeText = fiche.singleSite ? fiche.arrivee.ville : `${fiche.depart.ville} -> ${fiche.arrivee.ville}`;
+    const routeText = fiche.singleSite ? fiche.arrivee.ville : `${fiche.depart.ville} -> ${fiche.arrivee.ville} · ~${fiche.dist} km`;
     doc.fontSize(10).font('Helvetica').fillColor(GREY).text(
-      `${routeText} · ~${fiche.dist} km · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
+      `${routeText} · ${fiche.amount} ${fiche.unit} · ${fiche.workers} ${fiche.role} · ${fiche.duration}`
     );
 
     // 1. Informations sur le client
@@ -78,10 +78,11 @@ async function buildFichePdf(fiche) {
     section(doc, 2, `Informations sur ${fiche.addressNoun}`);
     if (!fiche.singleSite) addressBlock(doc, 'Adresse de départ', fiche.depart);
     addressBlock(doc, fiche.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', fiche.arrivee);
-    line(doc, fiche.singleSite ? 'Distance depuis le prestataire' : 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
+    if (fiche.typeLocaux) line(doc, 'Type de locaux', fiche.typeLocaux);
+    if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
-    if (fiche.frequency) line(doc, 'Fréquence souhaitée', fiche.frequency);
+    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} (~${fiche.passagesParMois} passages/mois)`);
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);
@@ -112,7 +113,12 @@ async function buildFichePdf(fiche) {
     doc.font('Helvetica-Bold').fontSize(13).fillColor(GREEN).text(
       `${formatEuro(fiche.price)} € TTC`
     );
-    doc.font('Helvetica').fontSize(9).fillColor(GREY).text('Budget maximum que le client souhaite mettre.');
+    doc.font('Helvetica').fontSize(9).fillColor(GREY).text(
+      fiche.recurring ? 'Budget maximum que le client souhaite mettre par intervention.' : 'Budget maximum que le client souhaite mettre.'
+    );
+    if (fiche.recurring) {
+      doc.fontSize(8.5).fillColor(GREY).text(`Montant par passage (${fiche.frequency}) — pas un forfait mensuel global.`);
+    }
     doc.fontSize(8.5).fillColor(GREY).text(
       "Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.",
       { italics: true }
