@@ -47,7 +47,7 @@ function addressBlock(doc, label, addr) {
   bullet(doc, `Ville : ${addr.ville}${addr.cp ? ` (${addr.cp})` : ''}`);
   bullet(doc, `Secteur (indicatif) : ${addr.quartier}`);
   bullet(doc, `Étage : ${addr.floor === 0 ? 'Rez-de-chaussée' : addr.floor === 1 ? '1er étage' : `${addr.floor}e étage`}`);
-  bullet(doc, `Ascenseur : ${addr.elevator ? 'Oui' : 'Non'}`);
+  if (addr.floor !== 0) bullet(doc, `Ascenseur : ${addr.elevator ? 'Oui' : 'Non'}`);
   bullet(doc, 'Stationnement : Disponible');
   doc.moveDown(0.4);
 }

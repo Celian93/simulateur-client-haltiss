@@ -1786,7 +1786,7 @@ async function generer() {
     ? pickN(profile.exclusions, Math.min(rand(1, 2), profile.exclusions.length))
     : (sector.exclusionsPool ? pickN(sector.exclusionsPool, rand(1, 2)) : []));
   const creditImpot = singleSite && Boolean(profile.creditImpot);
-  const niveau = singleSite ? (profile.niveau || 'Standard') : null;
+  const niveau = singleSite && profile.niveau && profile.niveau !== 'Standard' ? profile.niveau : null;
   const niveauNote = singleSite ? (profile.niveauNote || null) : null;
   const prestationsExtra = singleSite && profile.periodiques && profile.periodiques.length
     ? [
@@ -1902,7 +1902,7 @@ function afficher(d) {
         <li><b>Ville :</b> ${ville}${cp ? ` (${cp})` : ''}</li>
         <li><b>Secteur (indicatif) :</b> ${quartier}</li>
         <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : floor === 1 ? '1ᵉʳ étage' : `${floor}ᵉ étage`}</li>
-        <li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>
+        ${floor === 0 ? '' : `<li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>`}
         <li><b>Stationnement :</b> Disponible</li>
       </ul>
     </div>`;
