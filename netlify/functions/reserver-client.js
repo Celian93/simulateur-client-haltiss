@@ -9,7 +9,7 @@
 // ZOHO_CLIENT_SECRET, ZOHO_REFRESH_TOKEN (générés via api-console.zoho.eu,
 // type "Self Client"), ZOHO_ACCOUNT_ID et ZOHO_EMAIL (adresse d'envoi).
 
-const { OFFRE_FREE_HTML_B64, OFFRE_PARTICIPATION_HTML_B64 } = require('./brochures');
+const { OFFRE_FREE_PDF_B64, OFFRE_PARTICIPATION_PDF_B64 } = require('./brochures');
 const { buildFichePdf } = require('./build-fiche-pdf');
 
 const ZOHO_ACCOUNTS_BASE = 'https://accounts.zoho.eu';
@@ -18,14 +18,14 @@ const ZOHO_MAIL_API_BASE = 'https://mail.zoho.eu';
 const OFFERS = {
   free: {
     label: 'Offre Free',
-    filename: 'Haltiss-Offre-Free.html',
-    contentB64: OFFRE_FREE_HTML_B64,
+    filename: 'Haltiss-Offre-Free.pdf',
+    contentB64: OFFRE_FREE_PDF_B64,
     mention: 'Vous trouverez ci-joint le détail de notre Offre Free (premier mois offert).',
   },
   participation: {
     label: 'Offre Participation',
-    filename: 'Haltiss-Offre-Participation.html',
-    contentB64: OFFRE_PARTICIPATION_HTML_B64,
+    filename: 'Haltiss-Offre-Participation.pdf',
+    contentB64: OFFRE_PARTICIPATION_PDF_B64,
     mention: 'Vous trouverez ci-joint le détail de notre Offre Participation.',
   },
 };
