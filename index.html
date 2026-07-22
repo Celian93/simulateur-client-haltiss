@@ -734,12 +734,28 @@ const B2B_NETTOYAGE = [
 ];
 
 const FREQUENCES_NETTOYAGE = ['1 fois par semaine', '2 fois par semaine', 'Toutes les 2 semaines', '1 fois par mois'];
-const FREQUENCE_MENSUEL = {
-  '1 fois par semaine': 4,
-  '2 fois par semaine': 8,
-  'Toutes les 2 semaines': 2,
-  '1 fois par mois': 1,
-};
+const JOURS_PASSAGE = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+// Détermine le(s) jour(s) de passage précis et le nombre de passages/mois qui
+// en découle réellement (un mois compte tantôt 4, tantôt 5 occurrences d'un
+// jour de semaine donné, d'où la légère variation plutôt qu'un nombre figé).
+function pickJoursEtPassages(frequency) {
+  const shuffled = [...JOURS_PASSAGE].sort(() => Math.random() - 0.5);
+  const semainesDuMois = () => (Math.random() < 0.35 ? 5 : 4);
+  switch (frequency) {
+    case '1 fois par semaine':
+      return { jours: shuffled[0], passagesParMois: semainesDuMois() };
+    case '2 fois par semaine': {
+      const jours = shuffled.slice(0, 2).sort((a, b) => JOURS_PASSAGE.indexOf(a) - JOURS_PASSAGE.indexOf(b));
+      return { jours: jours.join(' et '), passagesParMois: semainesDuMois() * 2 };
+    }
+    case 'Toutes les 2 semaines':
+      return { jours: shuffled[0], passagesParMois: 2 };
+    case '1 fois par mois':
+    default:
+      return { jours: shuffled[0], passagesParMois: 1 };
+  }
+}
 
 const B2C_NETTOYAGE = [
   { cat:'Ménage récurrent — appartement', amount:[40,70], recurring:true, typeLocaux:'Appartement', items:[
@@ -1301,7 +1317,7 @@ async function generer() {
   // travaux, dégât des eaux... et n'ont pas de fréquence à demander).
   const recurring = singleSite && type === 'B2C' && profile.recurring;
   const frequency = recurring ? pick(FREQUENCES_NETTOYAGE) : null;
-  const passagesParMois = recurring ? FREQUENCE_MENSUEL[frequency] : null;
+  const { jours: joursPassage, passagesParMois } = recurring ? pickJoursEtPassages(frequency) : { jours: null, passagesParMois: null };
 
   // Type de locaux : explicite pour le nettoyage particulier (chaque catégorie
   // B2C précise le type de bien concerné) ; pour le B2B, le libellé de
@@ -1332,7 +1348,7 @@ async function generer() {
   afficher({
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, delai, dispo, workers, duration, price,
-    urgent, weekend, clientName, singleSite, frequency, passagesParMois, recurring, typeLocaux,
+    urgent, weekend, clientName, singleSite, frequency, joursPassage, passagesParMois, recurring, typeLocaux,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
@@ -1370,6 +1386,7 @@ function buildFicheData(d) {
     dist: d.dist,
     delai: d.delai,
     frequency: d.frequency || null,
+    joursPassage: d.joursPassage || null,
     passagesParMois: d.passagesParMois || null,
     recurring: Boolean(d.recurring),
     typeLocaux: d.typeLocaux || null,
@@ -1461,7 +1478,7 @@ function afficher(d) {
           ${d.singleSite ? '' : `<li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>`}
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
-          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} (~${d.passagesParMois} passages/mois)</li>` : ''}
+          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage} (~${d.passagesParMois} passages/mois)</li>` : ''}
         </ul>
       </div>
 
@@ -1556,6 +1573,7 @@ async function chargerContexteIA(d) {
         unit: d.sector.unit,
         delai: d.delai,
         frequency: d.frequency,
+        joursPassage: d.joursPassage,
         itemsSummary: topItems,
         clientLabel,
       }),

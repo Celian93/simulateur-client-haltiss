@@ -83,7 +83,7 @@ async function buildFichePdf(fiche) {
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
-    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} (~${fiche.passagesParMois} passages/mois)`);
+    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage} (~${fiche.passagesParMois} passages/mois)`);
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);

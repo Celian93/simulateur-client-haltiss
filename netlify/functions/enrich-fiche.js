@@ -19,7 +19,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'JSON invalide' }) };
   }
 
-  const { sector, cat, depart, arrivee, dist, amount, unit, delai, frequency, itemsSummary, clientLabel } = payload;
+  const { sector, cat, depart, arrivee, dist, amount, unit, delai, frequency, joursPassage, itemsSummary, clientLabel } = payload;
   if (!cat || !arrivee) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Données de fiche manquantes' }) };
   }
@@ -28,7 +28,7 @@ exports.handler = async (event) => {
   // Le nettoyage se déroule sur un seul site (pas de trajet A→B, pas de
   // kilométrage) : depart et dist sont alors absents.
   const lieuDescription = depart ? `trajet ${depart} → ${arrivee} (${dist} km)` : `site à ${arrivee}`;
-  const frequenceDescription = frequency ? `, fréquence souhaitée "${frequency}"` : '';
+  const frequenceDescription = frequency ? `, fréquence souhaitée "${frequency}"${joursPassage ? ` (${joursPassage})` : ''}` : '';
 
   const prompt = `Tu rédiges un court paragraphe (4 à 5 phrases) décrivant, pour un agent de liaison Haltiss, une situation client fictive dans le secteur du ${secteurLabel}.
 
