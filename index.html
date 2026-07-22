@@ -702,6 +702,81 @@ const CONTRAINTES_DEMENAGEMENT = [
 // par le guide Haltiss (bureaux/cabinets, commerces, petite restauration).
 // Le médical, le scolaire/petite enfance, l'industriel et les grandes
 // surfaces sont explicitement hors périmètre du générateur.
+// Prestations rédigées en phrases naturelles et complètes, jamais comptées
+// ("Nettoyage et désinfection des sanitaires.", pas "5 nettoyage sanitaires").
+// chaquePassage : tâches réalisées à chaque intervention (section 3).
+// periodiques : tâches hebdomadaires/mensuelles, pas à chaque passage (section 4).
+const PRESTATIONS_BUREAU = {
+  chaquePassage: [
+    'Dépoussiérage des bureaux laissés accessibles.',
+    'Aspiration des moquettes, tapis et sols.',
+    'Lavage des sols durs.',
+    'Vidage des corbeilles et remplacement des sacs.',
+    'Nettoyage et désinfection des sanitaires.',
+    'Nettoyage des lavabos, miroirs et robinetteries.',
+    'Nettoyage de la kitchenette ou de l\'espace de pause.',
+    'Nettoyage des poignées, interrupteurs et points de contact.',
+  ],
+  periodiques: [
+    { n: 'Nettoyage de l\'accueil', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage des salles de réunion', cadence: 'hebdomadaire' },
+    { n: 'Dépoussiérage du mobilier, des étagères basses et des rebords accessibles', cadence: 'hebdomadaire' },
+    { n: 'Suppression des traces de doigts sur les portes vitrées', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage des vitres intérieures', cadence: 'mensuel' },
+    { n: 'Dépoussiérage des plinthes et des portes', cadence: 'mensuel' },
+    { n: 'Nettoyage des cloisons vitrées', cadence: 'mensuel' },
+  ],
+};
+const PRESTATIONS_COWORKING = {
+  chaquePassage: [
+    'Aspiration et lavage des sols des espaces de travail.',
+    'Dépoussiérage des bureaux laissés libres.',
+    'Nettoyage des tables partagées.',
+    'Nettoyage de la kitchenette.',
+    'Nettoyage et désinfection des sanitaires.',
+    'Vidage des corbeilles.',
+    'Nettoyage des poignées et des points de contact.',
+  ],
+  periodiques: [
+    { n: 'Nettoyage de l\'accueil et des espaces communs', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage des salles de réunion', cadence: 'hebdomadaire' },
+    { n: 'Remise en ordre légère des chaises', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage des vitres intérieures et cloisons vitrées', cadence: 'mensuel' },
+  ],
+};
+const PRESTATIONS_COMMERCE = {
+  chaquePassage: [
+    'Lavage des sols.',
+    'Nettoyage des vitrines accessibles.',
+    'Nettoyage et désinfection des sanitaires.',
+    'Vidage des corbeilles.',
+    'Nettoyage des poignées et points de contact.',
+  ],
+  periodiques: [
+    { n: 'Dépoussiérage du mobilier et des présentoirs accessibles', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage approfondi de la vitrine', cadence: 'mensuel' },
+  ],
+};
+const PRESTATIONS_RESTAURANT = {
+  chaquePassage: [
+    'Aspiration et lavage des sols de la salle.',
+    'Nettoyage du bar et du comptoir accessibles.',
+    'Nettoyage et désinfection des sanitaires.',
+    'Nettoyage des poignées et des portes.',
+    'Vidage des poubelles ordinaires.',
+    'Lavage et dégraissage courant des sols de cuisine.',
+  ],
+  periodiques: [
+    { n: 'Nettoyage des tables après le service (si demandé)', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage des surfaces extérieures accessibles', cadence: 'hebdomadaire' },
+    { n: 'Nettoyage de la devanture et des vitres accessibles', cadence: 'mensuel' },
+  ],
+};
+const PRESTATIONS_PAR_FAMILLE = {
+  petiteAgence: PRESTATIONS_BUREAU, bureau: PRESTATIONS_BUREAU, bureauConfidentiel: PRESTATIONS_BUREAU,
+  commerce: PRESTATIONS_COMMERCE, restaurant: PRESTATIONS_RESTAURANT,
+};
+
 const FAMILLES_B2B_NETTOYAGE = {
   petiteAgence:       { tarifHT:[25,32], dureeFamily:'bureau', freqPool:['1 fois par semaine','2 fois par semaine','3 fois par semaine'] },
   bureau:             { tarifHT:[25,34], dureeFamily:'bureau', freqPool:['2 fois par semaine','3 fois par semaine','4 fois par semaine','5 fois par semaine'] },
@@ -710,7 +785,12 @@ const FAMILLES_B2B_NETTOYAGE = {
   restaurant:         { tarifHT:[28,38], dureeFamily:'restaurant', freqPool:['5 fois par semaine','6 fois par semaine'] },
 };
 function b2bCat(cat, famille, overrides) {
-  return { cat, recurring:true, niveau:'Standard', ...FAMILLES_B2B_NETTOYAGE[famille], ...overrides };
+  const prestations = PRESTATIONS_PAR_FAMILLE[famille];
+  return {
+    cat, recurring:true, niveau:'Standard', ...FAMILLES_B2B_NETTOYAGE[famille],
+    chaquePassage: prestations.chaquePassage, periodiques: prestations.periodiques,
+    ...overrides,
+  };
 }
 
 const EXCLUSIONS_BUREAU = [
@@ -732,97 +812,61 @@ const NIVEAU_NOTE_VERIF = 'Vérifier les produits, le matériel, la formation et
 
 const B2B_NETTOYAGE = [
   b2bCat('Cabinet d\'expertise comptable', 'bureau', { sizeUnit:'collaborateur', size:[3,12], amountBase:[45,180],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Lavage des sols durs',q:[2,6],f:false},{n:'Nettoyage kitchenette',q:[1,1],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Cabinet d\'avocats', 'bureauConfidentiel', { sizeUnit:'collaborateur', size:[4,14], amountBase:[100,220],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Lavage des sols durs',q:[2,6],f:false},{n:'Points de contact à désinfecter (poignées, interrupteurs)',qpp:0.5,f:false}],
-    periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres et cloisons vitrées',cadence:'mensuel'}],
     extra:['Confidentialité à respecter, dossiers non déplacés'],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Étude notariale', 'bureauConfidentiel', { sizeUnit:'collaborateur', size:[3,12], amountBase:[80,180],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},{n:'Lavage des sols durs',q:[2,5],f:false}],
-    periodiques:[{n:'Dépoussiérage du mobilier accessible',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     extra:['Confidentialité à respecter, dossiers non déplacés'],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Cabinet d\'architectes', 'bureau', { sizeUnit:'collaborateur', size:[4,14], amountBase:[80,180],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Lavage des sols durs',q:[2,5],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Cabinet de conseil', 'bureau', { sizeUnit:'collaborateur', size:[3,15], amountBase:[80,180],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Lavage des sols durs',q:[2,5],f:false},{n:'Nettoyage kitchenette',q:[1,1],f:false}],
-    periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Société informatique', 'bureau', { sizeUnit:'collaborateur', size:[5,25], amountBase:[100,220],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[2,5],f:false},{n:'Nettoyage kitchenette',q:[1,2],f:false},{n:'Lavage des sols durs',q:[2,6],f:false}],
-    periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: ['Le nettoyage des écrans, ordinateurs et équipements informatiques n\'est pas demandé.', 'Le déplacement de mobilier lourd n\'est pas compris.'] }),
   b2bCat('Agence immobilière', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,8], amountBase:[45,100],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Nettoyage approfondi de l\'accueil',cadence:'hebdomadaire'},{n:'Vitrine',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_COMMERCE }),
   b2bCat('Agence d\'assurance', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,10], amountBase:[45,100],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Société de courtage', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,10], amountBase:[45,100],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Agence de communication', 'petiteAgence', { sizeUnit:'collaborateur', size:[4,15], amountBase:[45,150],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,4],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false}],
-    periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Agence de recrutement', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,10], amountBase:[45,100],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Société de gestion', 'bureau', { sizeUnit:'collaborateur', size:[4,15], amountBase:[80,180],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Lavage des sols durs',q:[2,5],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Petite entreprise administrative', 'petiteAgence', { sizeUnit:'collaborateur', size:[3,10], amountBase:[45,100],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Lavage des sols durs',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Siège ou agence locale d\'une PME', 'bureau', { sizeUnit:'collaborateur', size:[5,20], amountBase:[80,220],
-    items:[{n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[2,6],f:false},{n:'Nettoyage kitchenette',q:[1,2],f:false},{n:'Lavage des sols durs',q:[2,6],f:false}],
-    periodiques:[{n:'Dépoussiérage des bureaux dégagés',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Espace de coworking', 'bureau', { sizeUnit:'poste', size:[10,22], amountBase:[100,220],
-    items:[
-      {n:'Vidage des corbeilles',qpp:0.5,f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[2,6],f:false},
-      {n:'Nettoyage kitchenette',q:[1,2],f:false},{n:'Lavage des sols durs',q:[2,6],f:false},
-      {n:'Points de contact à désinfecter (poignées, interrupteurs)',qpp:0.5,f:false},{n:'Nettoyage de l\'accueil',q:[1,1],f:false},
-    ],
-    periodiques:[{n:'Nettoyage complet des salles de réunion',cadence:'hebdomadaire'},{n:'Vitres intérieures',cadence:'mensuel'}],
+    chaquePassage: PRESTATIONS_COWORKING.chaquePassage, periodiques: PRESTATIONS_COWORKING.periodiques,
     exclusions: EXCLUSIONS_BUREAU }),
   b2bCat('Boutique avec espace de vente', 'commerce', { amountBase:[45,120],
-    items:[{n:'Lavage des sols durs',q:[1,1],f:false},{n:'Nettoyage vitrines',q:[1,3],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false}],
-    periodiques:[{n:'Dépoussiérage du mobilier accessible',cadence:'hebdomadaire'},{n:'Vitrine',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_COMMERCE }),
   b2bCat('Restaurant traditionnel', 'restaurant', { amountBase:[70,180],
-    items:[{n:'Nettoyage de la salle',q:[1,1],f:false},{n:'Nettoyage du bar et du comptoir accessibles',q:[1,1],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Dégraissage courant des sols',q:[1,1],f:false}],
     extra:['Intervention après service uniquement'],
-    periodiques:[{n:'Nettoyage des vitres accessibles',cadence:'hebdomadaire'},{n:'Nettoyage mécanisé des sols',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_RESTAURANT }),
   b2bCat('Petite brasserie', 'restaurant', { amountBase:[90,180], niveau:'Compétences à vérifier', niveauNote:NIVEAU_NOTE_VERIF,
-    items:[{n:'Nettoyage de la salle',q:[1,1],f:false},{n:'Nettoyage du bar',q:[1,1],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},{n:'Nettoyage de la cuisine accessible',q:[1,1],f:false}],
+    chaquePassage: [...PRESTATIONS_RESTAURANT.chaquePassage, 'Nettoyage de la cuisine accessible (selon le protocole du restaurant).'],
     extra:['Intervention après service uniquement', 'Surfaces en contact avec des denrées : protocole du restaurant à respecter'],
-    periodiques:[{n:'Nettoyage des vitres accessibles',cadence:'hebdomadaire'},{n:'Nettoyage mécanisé des sols',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_RESTAURANT }),
   b2bCat('Pizzeria', 'restaurant', { amountBase:[45,120],
-    items:[{n:'Nettoyage de la salle',q:[1,1],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},{n:'Dégraissage courant des sols',q:[1,1],f:false}],
     extra:['Intervention après service uniquement'],
-    periodiques:[{n:'Nettoyage des vitres accessibles',cadence:'hebdomadaire'},{n:'Nettoyage mécanisé des sols',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_RESTAURANT }),
   b2bCat('Petit établissement de restauration', 'restaurant', { amountBase:[45,120],
-    items:[{n:'Nettoyage de la salle',q:[1,1],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},{n:'Vidage des poubelles ordinaires',qpp:1,f:false}],
     extra:['Intervention après service uniquement'],
-    periodiques:[{n:'Nettoyage des vitres accessibles',cadence:'hebdomadaire'},{n:'Nettoyage mécanisé des sols',cadence:'mensuel'}],
     exclusions: EXCLUSIONS_RESTAURANT }),
   { cat:'Local après travaux', recurring:false, niveau:'Standard', pricingMode:'m2', tarifM2HT:[4,10], amountBase:[80,220],
-    items:[{n:'Évacuation de la poussière fine',q:[1,1],f:false},{n:'Nettoyage des sols',q:[4,10],f:false},{n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false}],
+    chaquePassage: [
+      'Évacuation de la poussière fine.',
+      'Nettoyage approfondi des sols.',
+      'Nettoyage des vitres et des traces de peinture accessibles.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Dépoussiérage des surfaces et du mobilier laissé sur place.',
+    ],
     extra:['Poussière de chantier', 'Protection des sols à prévoir'],
     exclusions: [
       'La présence d\'amiante ou de plomb n\'est pas prise en charge : une visite préalable est obligatoire dans ce cas.',
@@ -888,11 +932,18 @@ const B2C_NETTOYAGE = [
     // 2 fois par semaine explose le volume mensuel. heuresSemaineRange est donc
     // interpolé sur la surface, puis réparti sur le nombre de passages choisi.
     recurring:true, pricingMode:'horaire_recurrent', tarifTTC:[26,34], heuresSemaineRange:[1, 4.5], creditImpot:true,
-    items:[
-      {n:'Dépoussiérage',q:[3,5],f:false},{n:'Lavage des sols',q:[3,5],f:false},
-      {n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
+    chaquePassage:[
+      'Dépoussiérage des meubles et surfaces accessibles.',
+      'Aspiration de tous les sols.',
+      'Lavage des sols.',
+      'Nettoyage de la cuisine, de la plaque de cuisson et du plan de travail.',
+      'Nettoyage de la salle de bain et désinfection des sanitaires.',
+      'Nettoyage des miroirs.',
+      'Vidage des poubelles.',
+      'Nettoyage des poignées et interrupteurs.',
     ],
-    periodiques:[{n:'Vitres intérieures',cadence:'mensuel'},{n:'Changement des draps',cadence:'hebdomadaire'}],
+    periodiques:[{n:'Remise en ordre légère des pièces',cadence:'hebdomadaire'},{n:'Nettoyage des vitres',cadence:'mensuel'}],
+    optionsSiDemande:['Changement des draps','Repassage du linge','Nettoyage intérieur du four','Nettoyage intérieur du réfrigérateur (vide)','Nettoyage intérieur des placards vides','Élimination renforcée des poils d\'animaux'],
     exclusions:[
       'Le repassage du linge n\'est pas compris dans la prestation (sauf si le temps prévu le permet).',
       'Le nettoyage intérieur du four et du réfrigérateur n\'est pas compris dans l\'entretien récurrent.',
@@ -900,10 +951,12 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Grand ménage de printemps', amount:[70,140], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[32,42], dureeH:[5,10],
-    items:[
-      {n:'Vitres intérieures et extérieures',q:[4,10],f:false},{n:'Dépoussiérage en profondeur',q:[4,8],f:false},
-      {n:'Nettoyage des sols',q:[4,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},
-      {n:'Nettoyage électroménager',q:[2,4],f:false},
+    chaquePassage:[
+      'Nettoyage des vitres intérieures et extérieures.',
+      'Dépoussiérage en profondeur de toutes les surfaces.',
+      'Aspiration et lavage de tous les sols.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Nettoyage extérieur de l\'électroménager.',
     ],
     exclusions:[
       'Le nettoyage des vitres en hauteur n\'est pas compris.',
@@ -912,10 +965,12 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage fin de bail', amount:[30,80], typeLocaux:'Appartement', extra:['Logement vide','État des lieux à respecter'],
     pricingMode:'horaire_ponctuel', tarifTTC:[30,40], dureeH:[4,8],
-    items:[
-      {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},
-      {n:'Nettoyage cuisine complète',q:[1,1],f:false},{n:'Nettoyage des placards',q:[3,8],f:false},
-      {n:'Vitres',q:[3,8],f:false},
+    chaquePassage:[
+      'Nettoyage et lavage de tous les sols.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Nettoyage complet de la cuisine.',
+      'Nettoyage intérieur des placards vides.',
+      'Nettoyage des vitres accessibles.',
     ],
     exclusions:[
       'L\'évacuation des meubles et des encombrants laissés dans le logement n\'est pas comprise.',
@@ -924,10 +979,12 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage après travaux', amount:[40,100], typeLocaux:'Maison', extra:['Poussière de chantier','Protection des sols à prévoir'],
     pricingMode:'m2', tarifM2TTC:[5,8], niveau:'Compétences à vérifier', niveauNote:NIVEAU_NOTE_VERIF,
-    items:[
-      {n:'Évacuation de la poussière fine',q:[1,1],f:false},{n:'Nettoyage des sols',q:[4,10],f:false},
-      {n:'Vitres et traces de peinture',q:[3,8],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,3],f:false},
-      {n:'Dépoussiérage des surfaces',q:[4,10],f:false},
+    chaquePassage:[
+      'Évacuation de la poussière fine.',
+      'Nettoyage approfondi des sols.',
+      'Nettoyage des vitres et des traces de peinture accessibles.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Dépoussiérage des surfaces.',
     ],
     exclusions:[
       'La présence d\'amiante ou de plomb n\'est pas prise en charge : une visite préalable est obligatoire dans ce cas.',
@@ -936,10 +993,12 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage avant emménagement', amount:[35,70], typeLocaux:'Appartement',
     pricingMode:'horaire_ponctuel', tarifTTC:[30,38], dureeH:[3,6],
-    items:[
-      {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},
-      {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,6],f:false},
-      {n:'Nettoyage des placards',q:[2,6],f:false},
+    chaquePassage:[
+      'Nettoyage des sols.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Nettoyage de la cuisine.',
+      'Nettoyage des vitres accessibles.',
+      'Nettoyage intérieur des placards vides.',
     ],
     exclusions:[
       'Le nettoyage des vitres en hauteur n\'est pas compris.',
@@ -947,9 +1006,11 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Remise en état — départ locataire', amount:[30,70], typeLocaux:'Appartement', extra:['Restitution des clés au gardien ou à l\'agence'],
     pricingMode:'horaire_ponctuel', tarifTTC:[30,40], dureeH:[4,7],
-    items:[
-      {n:'Nettoyage des sols',q:[3,6],f:false},{n:'Sanitaires à nettoyer et désinfecter',q:[1,2],f:false},
-      {n:'Nettoyage cuisine',q:[1,1],f:false},{n:'Vitres',q:[2,5],f:false},
+    chaquePassage:[
+      'Nettoyage des sols.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Nettoyage de la cuisine.',
+      'Nettoyage des vitres accessibles.',
     ],
     exclusions:[
       'L\'évacuation des meubles et des encombrants laissés dans le logement n\'est pas comprise.',
@@ -957,9 +1018,10 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage tapis et moquettes', amount:[15,40], typeLocaux:'Maison',
     pricingMode:'m2', tarifM2TTC:[5,10],
-    items:[
-      {n:'Shampouinage moquette',q:[1,3],f:false},{n:'Traitement des taches',q:[1,4],f:false},
-      {n:'Nettoyage sols annexes',q:[1,3],f:false},
+    chaquePassage:[
+      'Shampouinage de la moquette.',
+      'Traitement des taches incrustées.',
+      'Nettoyage des sols annexes accessibles.',
     ],
     exclusions:[
       'Le décapage ou la métallisation des sols durs n\'est pas compris (devis séparé si nécessaire).',
@@ -967,8 +1029,9 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage de vitres', amount:[10,25], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[25,40], dureeH:[2,4],
-    items:[
-      {n:'Nettoyage des vitres accessibles',q:[8,16],f:false},{n:'Nettoyage des baies vitrées',q:[1,3],f:false},
+    chaquePassage:[
+      'Nettoyage des vitres accessibles depuis le sol.',
+      'Nettoyage des baies vitrées accessibles.',
     ],
     exclusions:[
       'Le nettoyage des vitres en hauteur n\'est pas compris.',
@@ -976,10 +1039,12 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Ménage occasionnel — grande maison', amount:[80,140], typeLocaux:'Maison',
     pricingMode:'horaire_ponctuel', tarifTTC:[32,40], dureeH:[6,10],
-    items:[
-      {n:'Dépoussiérage',q:[6,12],f:false},{n:'Nettoyage des sols',q:[6,12],f:false},
-      {n:'Sanitaires à nettoyer et désinfecter',q:[2,4],f:false},{n:'Nettoyage cuisine',q:[1,1],f:false},
-      {n:'Vitres',q:[6,14],f:false},
+    chaquePassage:[
+      'Dépoussiérage complet de toutes les pièces.',
+      'Aspiration et lavage de tous les sols.',
+      'Nettoyage et désinfection des sanitaires.',
+      'Nettoyage de la cuisine.',
+      'Nettoyage des vitres accessibles.',
     ],
     exclusions:[
       'Le nettoyage des vitres en hauteur n\'est pas compris.',
@@ -987,9 +1052,11 @@ const B2C_NETTOYAGE = [
     ] },
   { cat:'Nettoyage urgent — dégât des eaux', amount:[20,60], typeLocaux:'Appartement', extra:['Zone humide à traiter avec précaution'],
     pricingMode:'horaire_ponctuel', tarifTTC:[32,42], dureeH:[3,6], forceUrgent:true,
-    items:[
-      {n:'Extraction eau / humidité',q:[1,1],f:false},{n:'Nettoyage des sols',q:[3,8],f:false},
-      {n:'Désinfection',q:[2,5],f:false},{n:'Nettoyage du mobilier touché',q:[2,6],f:false},
+    chaquePassage:[
+      'Extraction de l\'eau et de l\'humidité.',
+      'Nettoyage et séchage des sols touchés.',
+      'Désinfection des surfaces touchées.',
+      'Nettoyage du mobilier touché.',
     ],
     exclusions:[
       'Les travaux de plomberie (réparation de fuite) ne sont pas compris, seul le nettoyage l\'est.',
@@ -1550,11 +1617,17 @@ async function generer() {
 
   if (type === 'B2B') {
     size = profile.size ? rand(...profile.size) : null;
-    for (const it of profile.items) {
-      if (it.qpp !== undefined && size) {
-        items.push({ n: it.n, q: Math.max(1, Math.round(size * it.qpp)), f: it.f });
-      } else if (it.q && Math.random() > 0.25) {
-        items.push({ n: it.n, q: rand(...it.q), f: it.f });
+    // Le nettoyage décrit ses prestations en phrases naturelles et complètes
+    // (jamais comptées : "Nettoyage et désinfection des sanitaires.", pas "5
+    // nettoyage sanitaires") — voir chaquePassage/periodiques plus bas. Seul le
+    // déménagement compte un inventaire physique réel (meubles, cartons...).
+    if (!singleSite) {
+      for (const it of profile.items) {
+        if (it.qpp !== undefined && size) {
+          items.push({ n: it.n, q: Math.max(1, Math.round(size * it.qpp)), f: it.f });
+        } else if (it.q && Math.random() > 0.25) {
+          items.push({ n: it.n, q: rand(...it.q), f: it.f });
+        }
       }
     }
     amount = rand(...profile.amountBase);
@@ -1574,12 +1647,23 @@ async function generer() {
     // lorsqu'il y a réellement une précision utile à donner (guide § règle finale).
     constraints = Math.random() < 0.15 ? [] : pickN(sector.contraintes, rand(1, 3));
   } else {
-    for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
+    if (!singleSite) {
+      for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
+    }
     amount = rand(...profile.amount);
     constraints = [...(profile.extra || []), ...(Math.random() < 0.2 ? [] : pickN(sector.contraintes, rand(1, 2)))];
   }
 
   items = items.filter(i => i.q > 0);
+
+  // Prestations nettoyage : liste complète et réaliste rédigée en phrases
+  // naturelles (jamais un compteur type "5 nettoyage sanitaires").
+  const chaquePassage = singleSite ? (profile.chaquePassage || []) : null;
+  // Une option "si demandé" (repassage, four, frigo...) est ajoutée avec une
+  // probabilité modeste : ce ne sont pas des tâches incluses par défaut.
+  const optionSiDemande = singleSite && profile.optionsSiDemande && Math.random() < 0.3
+    ? pick(profile.optionsSiDemande)
+    : null;
 
   // Délai court (10% des demandes), pilote le prix sans être affiché comme "urgent"
   const urgent = Math.random() < 0.1;
@@ -1685,7 +1769,10 @@ async function generer() {
   const niveau = singleSite ? (profile.niveau || 'Standard') : null;
   const niveauNote = singleSite ? (profile.niveauNote || null) : null;
   const prestationsExtra = singleSite && profile.periodiques && profile.periodiques.length
-    ? profile.periodiques.map(p => `${p.n} (${p.cadence})`)
+    ? [
+        ...profile.periodiques.map(p => `${p.n} (${p.cadence})`),
+        ...(optionSiDemande ? [`${optionSiDemande} (si demandé)`] : []),
+      ]
     : sector.prestationsExtra(items);
 
   // Estimation statistique (indicative, volontairement modeste) du nombre de
@@ -1700,7 +1787,7 @@ async function generer() {
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, exclusions, delai, dispo, workers, duration, price, priceUnit,
     urgent, weekend, clientName, singleSite, frequency, joursPassage, passagesParMois, passagesSemaineNum,
-    heuresMensuellesVal, recurring, creditImpot, typeLocaux, niveau, niveauNote, pricingModeM2,
+    heuresMensuellesVal, recurring, creditImpot, typeLocaux, niveau, niveauNote, pricingModeM2, chaquePassage,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
@@ -1749,6 +1836,7 @@ function buildFicheData(d) {
     unit: d.sector.unit,
     itemsTitle: d.sector.itemsTitle,
     itemGroups,
+    chaquePassage: d.chaquePassage || [],
     prestationsExtra: d.prestationsExtra,
     constraints: d.constraints,
     exclusions: d.exclusions || [],
@@ -1804,9 +1892,11 @@ function afficher(d) {
     const cat = d.sector.categorize(i.n);
     (groups[cat] = groups[cat] || []).push(i);
   });
-  const itemsHtml = d.sector.categoryOrder
-    .filter(cat => groups[cat] && groups[cat].length)
-    .map(cat => `
+  const itemsHtml = d.sector.key === 'nettoyage'
+    ? `<ul class="kv-list">${(d.chaquePassage || []).map(p => `<li>${p}</li>`).join('')}</ul>`
+    : d.sector.categoryOrder
+        .filter(cat => groups[cat] && groups[cat].length)
+        .map(cat => `
       <div class="item-group-label">${cat}</div>
       <ul class="kv-list">${groups[cat].map(i => `<li>${i.q} ${i.n.toLowerCase()}${i.f ? '<span class="fragile">fragile</span>' : ''}</li>`).join('')}</ul>
     `).join('');
@@ -1929,7 +2019,9 @@ async function chargerContexteIA(d) {
   el.className = 'ai-context pending';
   el.textContent = 'Génération de la description…';
 
-  const topItems = d.items.slice(0, 4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
+  const topItems = d.sector.key === 'nettoyage'
+    ? (d.chaquePassage || []).slice(0, 4).join(', ')
+    : d.items.slice(0, 4).map(i => `${i.q} ${i.n.toLowerCase()}`).join(', ');
   const clientLabel = d.type === 'B2B' ? d.clientName : 'le client (particulier)';
 
   try {

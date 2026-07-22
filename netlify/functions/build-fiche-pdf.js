@@ -98,11 +98,15 @@ async function buildFichePdf(fiche) {
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);
-    fiche.itemGroups.forEach((g) => {
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(g.label);
-      g.items.forEach((it) => bullet(doc, it));
-      doc.moveDown(0.2);
-    });
+    if (fiche.sectorKey === 'nettoyage') {
+      fiche.chaquePassage.forEach((p) => bullet(doc, p));
+    } else {
+      fiche.itemGroups.forEach((g) => {
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text(g.label);
+        g.items.forEach((it) => bullet(doc, it));
+        doc.moveDown(0.2);
+      });
+    }
 
     // 4. Prestations demandées
     section(doc, 4, 'Prestations demandées');
