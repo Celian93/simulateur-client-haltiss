@@ -682,7 +682,6 @@ const EXCLUSIONS_DEMENAGEMENT = [
 ];
 
 const CONTRAINTES_DEMENAGEMENT = [
-  'L\'accès pour la livraison doit être confirmé au préalable avec le gardien de l\'immeuble.',
   'L\'intervention doit débuter avant 12h.',
   'Le mobilier fragile doit être protégé avec des couvertures avant le transport.',
   'L\'ascenseur est présent mais de petite taille (90×110 cm), à vérifier pour le passage des meubles.',
@@ -692,6 +691,15 @@ const CONTRAINTES_DEMENAGEMENT = [
   'Le voisinage doit être respecté : pas d\'intervention avant 8h.',
   'Le prestataire doit fournir les cartons de déménagement.',
   'Le matériel informatique doit être débranché et sécurisé avant le transport.',
+];
+// Le gardien concerne un immeuble résidentiel (client particulier) ; pour une
+// société, l'accès et la remise des clés se règlent avec le responsable des
+// locaux, pas avec un gardien.
+const CONTRAINTES_DEMENAGEMENT_B2C = [
+  'L\'accès pour la livraison doit être confirmé au préalable avec le gardien de l\'immeuble.',
+];
+const CONTRAINTES_DEMENAGEMENT_B2B = [
+  'L\'accès pour la livraison doit être confirmé au préalable avec le responsable des locaux.',
 ];
 
 // Familles de tarification nettoyage B2B (repères HT du marché français,
@@ -1066,14 +1074,23 @@ const B2C_NETTOYAGE = [
 
 const CONTRAINTES_NETTOYAGE = [
   'L\'intervention doit être réalisée hors présence du client.',
-  'Les clés doivent être récupérées auprès du gardien avant l\'intervention.',
   'L\'alarme doit être désactivée à l\'arrivée puis réactivée après le passage.',
   'L\'accès aux locaux se fait par badge, à prévoir avant la première intervention.',
   'Les produits utilisés doivent être sans parfum ou les allergènes confirmés avec le client.',
   'Un code d\'entrée doit être obtenu avant la première intervention.',
   'Les interventions doivent être réalisées en soirée, après la fermeture.',
   'Les documents et dossiers présents ne doivent pas être déplacés.',
-  'L\'accès au local doit être confirmé au préalable avec le gardien de l\'immeuble.',
+];
+// Le gardien concerne un immeuble résidentiel (client particulier) ; pour une
+// société, la remise des clés et l'accès se règlent avec le responsable des
+// locaux, pas avec un gardien.
+const CONTRAINTES_NETTOYAGE_B2C = [
+  'Les clés doivent être récupérées auprès du gardien avant l\'intervention.',
+  'L\'accès au logement doit être confirmé au préalable avec le gardien de l\'immeuble.',
+];
+const CONTRAINTES_NETTOYAGE_B2B = [
+  'Les clés doivent être remises au responsable avant l\'intervention.',
+  'L\'accès aux locaux doit être confirmé au préalable avec le responsable des locaux.',
 ];
 
 const SECTORS = {
@@ -1088,6 +1105,8 @@ const SECTORS = {
     B2B: B2B_DEMENAGEMENT,
     B2C: B2C_DEMENAGEMENT,
     contraintes: CONTRAINTES_DEMENAGEMENT,
+    contraintesB2B: CONTRAINTES_DEMENAGEMENT_B2B,
+    contraintesB2C: CONTRAINTES_DEMENAGEMENT_B2C,
     exclusionsPool: EXCLUSIONS_DEMENAGEMENT,
     // Calibré sur les tarifs réels du marché français du déménagement (2024-2025) :
     // ~350-700 € pour un studio/2 pièces, ~900-1500 € pour une maison, majoré par
@@ -1116,6 +1135,8 @@ const SECTORS = {
     B2B: B2B_NETTOYAGE,
     B2C: B2C_NETTOYAGE,
     contraintes: CONTRAINTES_NETTOYAGE,
+    contraintesB2B: CONTRAINTES_NETTOYAGE_B2B,
+    contraintesB2C: CONTRAINTES_NETTOYAGE_B2C,
     // Calibré sur les tarifs réels du marché français du nettoyage (2024-2025) :
     // ~3 à 6 €/m² pour une prestation ponctuelle standard, un peu plus pour du
     // fin de bail / post-travaux, avec un forfait minimum d'intervention.
@@ -1418,6 +1439,11 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
     let total = hMensuelles * tarifHoraire;
     if (profile.periodiques && profile.periodiques.length) total *= (1.06 + Math.random() * 0.08); // prestations périodiques (vitres, moquette...) ajoutées au forfait
     total *= (0.95 + Math.random() * 0.1);
+    // Un contrat récurrent a un coût mensuel minimum réaliste même pour un
+    // petit volume horaire (déplacement, mise en route, suivi du contrat) :
+    // environ 1000 € pour un professionnel, jamais sous 700 € pour un particulier.
+    const planchierMensuel = type === 'B2B' ? rand(950, 1050) : 700;
+    total = Math.max(total, planchierMensuel);
     return { total: arrondirBudgetClient(total, type), tarifHoraire, heuresMensuelles: hMensuelles };
   }
   tarifHoraire *= coefficientPonctuelNettoyage(urgent);
@@ -1662,13 +1688,15 @@ async function generer() {
     }
     // Pas de contrainte pour environ 1 fiche sur 6 : n'afficher la rubrique que
     // lorsqu'il y a réellement une précision utile à donner (guide § règle finale).
-    constraints = Math.random() < 0.15 ? [] : pickN(sector.contraintes, rand(1, 3));
+    const contraintesPoolB2B = [...sector.contraintes, ...(sector.contraintesB2B || [])];
+    constraints = Math.random() < 0.15 ? [] : pickN(contraintesPoolB2B, rand(1, 3));
   } else {
     if (!singleSite) {
       for (const it of profile.items) items.push({ n: it.n, q: rand(...it.q), f: it.f });
     }
     amount = rand(...profile.amount);
-    constraints = [...(profile.extra || []), ...(Math.random() < 0.2 ? [] : pickN(sector.contraintes, rand(1, 2)))];
+    const contraintesPoolB2C = [...sector.contraintes, ...(sector.contraintesB2C || [])];
+    constraints = [...(profile.extra || []), ...(Math.random() < 0.2 ? [] : pickN(contraintesPoolB2C, rand(1, 2)))];
   }
 
   items = items.filter(i => i.q > 0);
@@ -1704,19 +1732,30 @@ async function generer() {
   const realDist = singleSite ? null : (coords ? await realRoadDistanceKm(coords[depart], coords[arrivee]) : null);
   const dist = singleSite ? 0 : (realDist !== null ? realDist : rand(3, 35));
 
+  // Type de locaux : explicite pour le nettoyage particulier (chaque catégorie
+  // B2C précise le type de bien concerné) ; pour le B2B, le libellé de
+  // catégorie décrit déjà le type de locaux (bureaux, cabinet médical...).
+  const typeLocaux = singleSite ? (profile.typeLocauxFn ? profile.typeLocauxFn(amount) : (profile.typeLocaux || cat)) : null;
+
   // Adresse(s) : une seule pour le nettoyage (site d'intervention), deux
   // distinctes (départ/arrivée) pour le déménagement.
   // Un restaurant se trouve toujours en rez-de-chaussée (salle accessible
-  // directement depuis la rue) : jamais en étage.
-  const arriveeFloor = (singleSite && profile.dureeFamily === 'restaurant') ? 0 : rand(0, 5);
+  // directement depuis la rue) : jamais en étage. Une maison individuelle n'a
+  // jamais d'ascenseur (quel que soit l'étage) et ne dépasse jamais R+3.
+  const arriveeIsMaison = singleSite && typeLocaux === 'Maison';
+  const arriveeFloor = (singleSite && profile.dureeFamily === 'restaurant') ? 0
+    : arriveeIsMaison ? rand(0, 3)
+    : rand(0, 5);
   const arriveeElevator = true;
+  const arriveeNoElevator = arriveeFloor === 0 || arriveeIsMaison;
   const arriveeQuartier = pick(QUARTIERS);
   const arriveeCp = resolvedLocation ? postalCodeFor(arrivee, resolvedLocation.departementCode) : '';
 
-  let departFloor = null, departElevator = null, departQuartier = null, departCp = null;
+  let departFloor = null, departElevator = null, departNoElevator = null, departQuartier = null, departCp = null;
   if (!singleSite) {
     departFloor = rand(0, 5);
     departElevator = true;
+    departNoElevator = departFloor === 0;
     departQuartier = pick(QUARTIERS.filter(q => q !== arriveeQuartier)) || QUARTIERS[0];
     departCp = resolvedLocation ? postalCodeFor(depart, resolvedLocation.departementCode) : '';
   }
@@ -1738,11 +1777,6 @@ async function generer() {
   const frequency = recurring ? pick(freqPool) : null;
   const passagesSemaineNum = recurring ? PASSAGES_PAR_SEMAINE[frequency] : null;
   const { jours: joursPassage, passagesParMois } = recurring ? pickJoursEtPassages(frequency) : { jours: null, passagesParMois: null };
-
-  // Type de locaux : explicite pour le nettoyage particulier (chaque catégorie
-  // B2C précise le type de bien concerné) ; pour le B2B, le libellé de
-  // catégorie décrit déjà le type de locaux (bureaux, cabinet médical...).
-  const typeLocaux = singleSite ? (profile.typeLocauxFn ? profile.typeLocauxFn(amount) : (profile.typeLocaux || cat)) : null;
 
   // Moteur de tarification nettoyage dédié (guide Haltiss) : durée interpolée
   // depuis la fourchette de surface/durée de la catégorie, budget calculé
@@ -1810,7 +1844,7 @@ async function generer() {
     constraints: derivedConstraints, exclusions, delai, dispo, workers, duration, price, priceUnit,
     urgent, weekend, clientName, singleSite, frequency, joursPassage, passagesParMois, passagesSemaineNum,
     heuresMensuellesVal, recurring, creditImpot, typeLocaux, niveau, niveauNote, pricingModeM2, chaquePassage, heureIntervention,
-    departFloor, arriveeFloor, departElevator, arriveeElevator,
+    departFloor, arriveeFloor, departElevator, arriveeElevator, departNoElevator, arriveeNoElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
     monthlyTotal, monthlyPro, monthlyPart,
@@ -1842,8 +1876,8 @@ function buildFicheData(d) {
     sizeUnit: d.sizeUnit,
     addressNoun: d.sector.addressNoun,
     singleSite: d.singleSite,
-    depart: d.singleSite ? null : { ville: d.depart, cp: d.departCp, quartier: d.departQuartier, floor: d.departFloor, elevator: d.departElevator },
-    arrivee: { ville: d.arrivee, cp: d.arriveeCp, quartier: d.arriveeQuartier, floor: d.arriveeFloor, elevator: d.arriveeElevator },
+    depart: d.singleSite ? null : { ville: d.depart, cp: d.departCp, quartier: d.departQuartier, floor: d.departFloor, elevator: d.departElevator, noElevator: d.departNoElevator },
+    arrivee: { ville: d.arrivee, cp: d.arriveeCp, quartier: d.arriveeQuartier, floor: d.arriveeFloor, elevator: d.arriveeElevator, noElevator: d.arriveeNoElevator },
     dist: d.dist,
     delai: d.delai,
     frequency: d.frequency || null,
@@ -1897,14 +1931,14 @@ function afficher(d) {
       ];
 
   // Section 2 : adresses et informations logistiques (stationnement toujours disponible)
-  const addressBlock = (label, ville, cp, quartier, floor, elevator) => `
+  const addressBlock = (label, ville, cp, quartier, floor, elevator, noElevator) => `
     <div class="address-block">
       <div class="address-label">${label}</div>
       <ul class="kv-list">
         <li><b>Ville :</b> ${ville}${cp ? ` (${cp})` : ''}</li>
         <li><b>Secteur (indicatif) :</b> ${quartier}</li>
         <li><b>Étage :</b> ${floor === 0 ? 'Rez-de-chaussée' : floor === 1 ? '1ᵉʳ étage' : `${floor}ᵉ étage`}</li>
-        ${floor === 0 ? '' : `<li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>`}
+        ${noElevator ? '' : `<li><b>Ascenseur :</b> ${elevator ? 'Oui' : 'Non'}</li>`}
         <li><b>Stationnement :</b> Disponible</li>
       </ul>
     </div>`;
@@ -1942,8 +1976,8 @@ function afficher(d) {
       <div class="section">
         <div class="section-title">2. Informations sur ${d.sector.addressNoun}</div>
         <div class="address-grid">
-          ${d.singleSite ? '' : addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator)}
-          ${addressBlock(d.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator)}
+          ${d.singleSite ? '' : addressBlock('Adresse de départ', d.depart, d.departCp, d.departQuartier, d.departFloor, d.departElevator, d.departNoElevator)}
+          ${addressBlock(d.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', d.arrivee, d.arriveeCp, d.arriveeQuartier, d.arriveeFloor, d.arriveeElevator, d.arriveeNoElevator)}
         </div>
         <ul class="kv-list">
           ${d.typeLocaux ? `<li><b>Type de locaux :</b> ${d.typeLocaux}</li>` : ''}
