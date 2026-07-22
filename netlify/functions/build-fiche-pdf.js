@@ -86,6 +86,7 @@ async function buildFichePdf(fiche) {
     if (!fiche.singleSite) addressBlock(doc, 'Adresse de départ', fiche.depart);
     addressBlock(doc, fiche.singleSite ? 'Adresse d\'intervention' : 'Adresse d\'arrivée', fiche.arrivee);
     if (fiche.typeLocaux) line(doc, 'Type de locaux', fiche.typeLocaux);
+    if (fiche.niveau) line(doc, 'Niveau de prestation', fiche.niveau + (fiche.niveauNote ? ` — ${fiche.niveauNote}` : ''));
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
