@@ -45,7 +45,7 @@ function bullet(doc, text) {
 function addressBlock(doc, label, addr) {
   doc.font('Helvetica-Bold').fontSize(10.5).fillColor(DARK).text(label);
   bullet(doc, `Ville : ${addr.ville}${addr.cp ? ` (${addr.cp})` : ''}`);
-  bullet(doc, `Quartier : ${addr.quartier}`);
+  bullet(doc, `Secteur (indicatif) : ${addr.quartier}`);
   bullet(doc, `Étage : ${addr.floor === 0 ? 'Rez-de-chaussée' : addr.floor === 1 ? '1er étage' : `${addr.floor}e étage`}`);
   bullet(doc, `Ascenseur : ${addr.elevator ? 'Oui' : 'Non'}`);
   bullet(doc, 'Stationnement : Disponible');
@@ -90,6 +90,7 @@ async function buildFichePdf(fiche) {
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
+    if (fiche.sectorKey === 'nettoyage' && !fiche.pricingModeM2) line(doc, 'Durée estimée par passage', fiche.duration);
     if (fiche.frequency) {
       line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
       line(doc, 'Volume mensuel estimé', `~${fiche.passagesParMois} passages, ~${formatHeures(fiche.heuresMensuellesVal)}/mois`);
