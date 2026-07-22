@@ -1312,10 +1312,17 @@ async function generer() {
     departCp = resolvedLocation ? postalCodeFor(depart, resolvedLocation.departementCode) : '';
   }
 
-  // Fréquence de prestation pour le nettoyage particulier récurrent (les
-  // autres catégories nettoyage B2C sont ponctuelles : fin de bail, après
-  // travaux, dégât des eaux... et n'ont pas de fréquence à demander).
-  const recurring = singleSite && type === 'B2C' && profile.recurring;
+  // Fréquence de prestation pour le nettoyage récurrent. Côté particulier,
+  // seul le ménage à domicile est concerné (les autres catégories B2C sont
+  // ponctuelles : fin de bail, après travaux, dégât des eaux...). Côté
+  // professionnel, un contrat de nettoyage récurrent (bureaux, cabinet,
+  // salle de sport...) est au moins aussi fréquent qu'une prestation
+  // ponctuelle : on tire donc aussi au sort une récurrence pour le B2B.
+  const B2B_RECURRING_CHANCE = 0.55;
+  const recurring = singleSite && (
+    (type === 'B2C' && Boolean(profile.recurring)) ||
+    (type === 'B2B' && Math.random() < B2B_RECURRING_CHANCE)
+  );
   const frequency = recurring ? pick(FREQUENCES_NETTOYAGE) : null;
   const { jours: joursPassage, passagesParMois } = recurring ? pickJoursEtPassages(frequency) : { jours: null, passagesParMois: null };
 
@@ -1324,12 +1331,15 @@ async function generer() {
   // catégorie décrit déjà le type de locaux (bureaux, cabinet médical...).
   const typeLocaux = singleSite ? (profile.typeLocaux || cat) : null;
 
-  // Une prestation de ménage récurrent se facture par passage (femme de
-  // ménage à domicile) : un tarif horaire nettement plus bas qu'un chantier
-  // ponctuel, sur une durée plus courte, sans notion de kilométrage.
-  const workers = recurring ? 1 : sector.workers(amount);
+  // Un contrat de ménage récurrent à domicile (B2C) se facture par passage
+  // d'une femme de ménage seule, à tarif horaire : sans rapport avec un
+  // chantier ponctuel. Un contrat récurrent professionnel (B2B), lui, garde
+  // une équipe et une tarification proportionnelles à la taille des locaux,
+  // exactement comme une prestation ponctuelle — seule la fréquence change.
+  const recurringDomestique = recurring && type === 'B2C';
+  const workers = recurringDomestique ? 1 : sector.workers(amount);
   const duration = sector.duration(amount, dist, workers);
-  const price = recurring
+  const price = recurringDomestique
     ? computeRecurringNettoyagePrice(workers, duration)
     : computePrice(sector, amount, dist, workers, duration, urgent, weekend);
 
