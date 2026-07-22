@@ -1522,10 +1522,25 @@ async function resolveCodePostal(cp) {
       const zonesRes = await fetch(zonesUrl);
       const communes = await zonesRes.json();
       if (Array.isArray(communes) && communes.length) {
-        const withPop = communes.filter(x => x.population);
+        // On ne garde que les communes réellement proches (rayon de 20 km autour
+        // du code postal saisi), pas tout le département qui peut s'étendre sur
+        // plus de 100 km — sinon le prestataire se voit proposer des trajets
+        // totalement incohérents avec sa zone d'intervention réelle.
+        const RAYON_ZONE_KM = 20;
+        let candidats = communes;
+        if (ownCoords) {
+          const proches = communes.filter(x => {
+            if (!x.centre || !Array.isArray(x.centre.coordinates)) return false;
+            const coords = { lon: x.centre.coordinates[0], lat: x.centre.coordinates[1] };
+            const d = realDistanceKm(ownCoords, coords);
+            return d !== null && d <= RAYON_ZONE_KM;
+          });
+          if (proches.length >= 2) candidats = proches;
+        }
+        const withPop = candidats.filter(x => x.population);
         // Filet de sécurité : si trop peu de communes ont une population renseignée
-        // (petits départements/collectivités), on repart de la liste complète.
-        const base = withPop.length >= 2 ? withPop : communes;
+        // (petits départements/collectivités), on repart de la liste candidate complète.
+        const base = withPop.length >= 2 ? withPop : candidats;
         const top = base.sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 15);
         zones = top.map(x => stripArrondissement(x.nom));
         top.forEach(x => {
@@ -1664,6 +1679,10 @@ async function generer() {
   const optionSiDemande = singleSite && profile.optionsSiDemande && Math.random() < 0.3
     ? pick(profile.optionsSiDemande)
     : null;
+  // Horaire de passage précis, toujours en fin de journée (le nettoyage de
+  // bureaux/commerces se fait hors présence du public, après la fermeture).
+  const HEURES_INTERVENTION_SOIR = ['18h00', '18h30', '19h00', '19h30', '20h00', '20h30'];
+  const heureIntervention = singleSite ? pick(HEURES_INTERVENTION_SOIR) : null;
 
   // Délai court (10% des demandes), pilote le prix sans être affiché comme "urgent"
   const urgent = Math.random() < 0.1;
@@ -1786,7 +1805,7 @@ async function generer() {
     sector, type, cat, depart, arrivee, dist, items, amount, size,
     constraints: derivedConstraints, exclusions, delai, dispo, workers, duration, price, priceUnit,
     urgent, weekend, clientName, singleSite, frequency, joursPassage, passagesParMois, passagesSemaineNum,
-    heuresMensuellesVal, recurring, creditImpot, typeLocaux, niveau, niveauNote, pricingModeM2, chaquePassage,
+    heuresMensuellesVal, recurring, creditImpot, typeLocaux, niveau, niveauNote, pricingModeM2, chaquePassage, heureIntervention,
     departFloor, arriveeFloor, departElevator, arriveeElevator,
     departQuartier, arriveeQuartier, departCp, arriveeCp,
     prestationsExtra, sizeUnit: profile.sizeUnit || 'collaborateur',
@@ -1827,6 +1846,7 @@ function buildFicheData(d) {
     joursPassage: d.joursPassage || null,
     passagesParMois: d.passagesParMois || null,
     heuresMensuellesVal: d.heuresMensuellesVal || null,
+    heureIntervention: d.heureIntervention || null,
     recurring: Boolean(d.recurring),
     creditImpot: Boolean(d.creditImpot),
     typeLocaux: d.typeLocaux || null,
@@ -1928,8 +1948,8 @@ function afficher(d) {
           <li><b>Date souhaitée :</b> ${d.delai}</li>
           <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
           ${d.sector.key === 'nettoyage' && d.duration && !d.pricingModeM2 ? `<li><b>Durée estimée par passage :</b> ${formatHeures(d.duration)}</li>` : ''}
-          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>
-          <li><b>Volume mensuel estimé :</b> environ ${d.passagesParMois} passages sur le mois, pour un total d'environ ${formatHeures(d.heuresMensuellesVal)} de prestation</li>` : ''}
+          ${d.heureIntervention ? `<li><b>Horaire d'intervention souhaité :</b> ${d.heureIntervention} (fin de journée)</li>` : ''}
+          ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>` : ''}
         </ul>
       </div>
 
