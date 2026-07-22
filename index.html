@@ -1315,13 +1315,12 @@ async function generer() {
   // Fréquence de prestation pour le nettoyage récurrent. Côté particulier,
   // seul le ménage à domicile est concerné (les autres catégories B2C sont
   // ponctuelles : fin de bail, après travaux, dégât des eaux...). Côté
-  // professionnel, un contrat de nettoyage récurrent (bureaux, cabinet,
-  // salle de sport...) est au moins aussi fréquent qu'une prestation
-  // ponctuelle : on tire donc aussi au sort une récurrence pour le B2B.
-  const B2B_RECURRING_CHANCE = 0.55;
+  // professionnel, un contrat de nettoyage se fait toujours dans la durée
+  // (bureaux, cabinet, salle de sport...) : la récurrence s'applique donc
+  // systématiquement à tout client B2B nettoyage.
   const recurring = singleSite && (
     (type === 'B2C' && Boolean(profile.recurring)) ||
-    (type === 'B2B' && Math.random() < B2B_RECURRING_CHANCE)
+    type === 'B2B'
   );
   const frequency = recurring ? pick(FREQUENCES_NETTOYAGE) : null;
   const { jours: joursPassage, passagesParMois } = recurring ? pickJoursEtPassages(frequency) : { jours: null, passagesParMois: null };
