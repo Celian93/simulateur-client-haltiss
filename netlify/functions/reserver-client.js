@@ -85,7 +85,7 @@ Un nouveau client (${c.cat}) recherche un prestataire de nettoyage à ${c.arrive
 
 Prestation : ${c.amount} ${c.unit}${c.frequencyNote}. Intervention souhaitée ${c.delai}.
 
-Budget estimé par le client : jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''}.
+Budget estimé par le client : jusqu'à ${c.price} € ${c.priceUnit}${c.recurring ? ' par mois' : ''}.
 
 Ce client vous est réservé sous 24h, sous réserve de votre prise en charge. Merci de confirmer votre disponibilité rapidement.
 
@@ -98,7 +98,7 @@ L'équipe Haltiss`,
 Une opportunité de mission de nettoyage vient d'être identifiée pour vous : ${c.cat}, site situé à ${c.arrivee} (${c.amount} ${c.unit}${c.frequencyNote}).
 
 Délai souhaité par le client : ${c.delai}.
-Le client est prêt à mettre jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''} pour cette prestation.
+Le client est prêt à mettre jusqu'à ${c.price} € ${c.priceUnit}${c.recurring ? ' par mois' : ''} pour cette prestation.
 
 Vous disposez de 24h pour prendre en charge ce client, sous réserve de disponibilité de votre part.
 
@@ -111,7 +111,7 @@ L'équipe Haltiss`,
 
 Nous avons une mise en relation à vous proposer : un client (${c.cat}) recherche un service de nettoyage à ${c.arrivee} (${c.amount} ${c.unit}${c.frequencyNote}), ${c.delai}.
 
-Budget client indicatif : jusqu'à ${c.price} € TTC${c.recurring ? ' par intervention' : ''}.
+Budget client indicatif : jusqu'à ${c.price} € ${c.priceUnit}${c.recurring ? ' par mois' : ''}.
 
 Ce client est réservé pour vous pendant 24h, sous réserve de prise en charge. Répondez à cet e-mail pour confirmer.
 
@@ -159,6 +159,7 @@ exports.handler = async (event) => {
     frequencyNote: fiche.frequency ? `, ${fiche.frequency}` : '',
     delai: delai || 'à convenir',
     price: Number(price || 0).toLocaleString('fr-FR'),
+    priceUnit: fiche.priceUnit || 'TTC',
   };
 
   try {

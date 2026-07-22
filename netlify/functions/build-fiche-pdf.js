@@ -16,6 +16,12 @@ function formatEuro(n) {
   return Number(n).toLocaleString('fr-FR').replace(/[\u00A0\u202F]/g, ' ');
 }
 
+function formatHeures(h) {
+  const totalMin = Math.round(h * 60);
+  const hh = Math.floor(totalMin / 60), mm = totalMin % 60;
+  return mm === 0 ? `${hh}h` : `${hh}h${String(mm).padStart(2, '0')}`;
+}
+
 // \u00C9lision correcte ("d'agents" et non "de agents") pour les mots commen\u00E7ant par une voyelle.
 function deLabel(word) {
   return /^[aeiouh\u00E9\u00E8\u00EA\u00E0\u00E2\u00EE\u00EF\u00F4\u00FB\u00F9]/i.test(word) ? `d'${word}` : `de ${word}`;
@@ -83,7 +89,10 @@ async function buildFichePdf(fiche) {
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
     line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
-    if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage} (~${fiche.passagesParMois} passages/mois)`);
+    if (fiche.frequency) {
+      line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
+      line(doc, 'Volume mensuel estimé', `~${fiche.passagesParMois} passages, ~${formatHeures(fiche.heuresMensuellesVal)}/mois`);
+    }
 
     // 3. Matériel / prestations
     section(doc, 3, fiche.itemsTitle);
@@ -103,29 +112,36 @@ async function buildFichePdf(fiche) {
       fiche.constraints.forEach((c) => bullet(doc, c));
     }
 
-    // 6. Infos prestataire (non pertinent pour le nettoyage : c'est au
-    // prestataire de dimensionner lui-même son équipe, son matériel et sa durée)
+    // 6. Infos prestataire (déménagement) ou Exclusions (nettoyage) : côté
+    // nettoyage, c'est au prestataire de dimensionner lui-même équipe/matériel/durée.
     if (fiche.sectorKey !== 'nettoyage') {
       section(doc, 6, 'Informations utiles pour le prestataire');
       line(doc, `Nombre ${deLabel(fiche.role)} conseillé`, fiche.workers);
       line(doc, fiche.equipmentLabel, fiche.equipment);
       line(doc, 'Durée estimée de l\'intervention', fiche.duration);
+    } else if (fiche.exclusions && fiche.exclusions.length) {
+      section(doc, 6, 'Exclusions');
+      fiche.exclusions.forEach((e) => bullet(doc, e));
     }
 
     // 7. Budget
     section(doc, 7, 'Budget du client');
     doc.font('Helvetica-Bold').fontSize(13).fillColor(GREEN).text(
-      `${formatEuro(fiche.price)} € TTC`
+      `${formatEuro(fiche.price)} € ${fiche.priceUnit || 'TTC'}`
     );
     doc.font('Helvetica').fontSize(9).fillColor(GREY).text(
-      fiche.recurring ? 'Budget maximum que le client souhaite mettre par intervention.' : 'Budget maximum que le client souhaite mettre.'
+      fiche.recurring ? 'Budget maximum que le client souhaite mettre par mois.' : 'Budget maximum que le client souhaite mettre.'
     );
     if (fiche.recurring) {
-      doc.fontSize(8.5).fillColor(GREY).text(`Montant par passage (${fiche.frequency}) — pas un forfait mensuel global.`);
       doc.fontSize(8.5).fillColor(GREY).text("À l'issue du premier mois, un contrat professionnel pourra vous être proposé.");
     }
+    if (fiche.creditImpot) {
+      doc.fontSize(8.5).fillColor(GREY).text("Crédit d'impôt de 50 % envisageable si le prestataire est déclaré au titre des services à la personne — à vérifier avant application.");
+    }
     doc.fontSize(8.5).fillColor(GREY).text(
-      "Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.",
+      fiche.sectorKey === 'nettoyage'
+        ? 'Estimation à confirmer après visite ou échange avec le client.'
+        : "Sous réserve d'informations exactes fournies par le client — le tarif définitif sera détaillé avec lui avant intervention.",
       { italics: true }
     );
 
