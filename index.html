@@ -1339,15 +1339,17 @@ function getZones(dept, ville) {
 // Estime le budget maximum réaliste que le client est prêt à mettre pour cette
 // prestation précise : ni sous-évalué (le prestataire doit être payé à sa juste
 // valeur), ni surévalué (ça reste un tarif de marché plausible pour ce type de mission).
-function computePrice(sector, amount, dist, workers, duration, urgent, weekend) {
+function computePrice(sector, type, amount, dist, workers, duration, urgent, weekend) {
   const p = sector.price;
   let base = p.base + amount * p.unitRate + dist * p.distRate + workers * duration * p.workerRate;
   if (urgent) base *= p.urgentMult;
   if (weekend) base *= p.weekendMult;
   base *= (0.9 + Math.random() * 0.3); // ±variance réaliste selon le prestataire/l'état du bien
-  // Plancher avec variance continue, et arrondi à l'euro seulement : un budget
-  // de marché réaliste n'est jamais un multiple rond (1250, 780...).
-  base = Math.max(base, p.floor + Math.random() * p.floor * 0.3);
+  // Jamais en dessous de 1000 € TTC pour un professionnel, 700 € TTC pour un
+  // particulier — avec une variance continue, et arrondi à l'euro seulement :
+  // un budget de marché réaliste n'est jamais un multiple rond (1250, 780...).
+  const floorMin = type === 'B2B' ? 1000 : 700;
+  base = Math.max(base, floorMin + Math.random() * (type === 'B2B' ? 400 : 300));
   return Math.round(base);
 }
 
@@ -1874,7 +1876,7 @@ async function generer() {
   } else {
     workers = sector.workers(amount);
     duration = sector.duration(amount, dist, workers);
-    price = computePrice(sector, amount, dist, workers, duration, urgent, weekend);
+    price = computePrice(sector, type, amount, dist, workers, duration, urgent, weekend);
   }
 
   const clientName = singleSite ? generateContactRoleGenerique() : generateContactName();
