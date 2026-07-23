@@ -1405,16 +1405,12 @@ const PALIERS_DUREE_BUREAU = [[0, 75, 1, 1.25], [75, 110, 1, 1.5], [110, 150, 1.
 const PALIERS_DUREE_RESTAURANT = [[0, 100, 1.5, 2], [100, 140, 2, 2.5], [140, 220, 2.5, 3.5]];
 const PALIERS_DUREE_PARTICULIER = [[0, 40, 2, 2.25], [40, 60, 2, 3], [60, 85, 2.5, 4], [85, 110, 3.5, 5], [110, 220, 4, 6]];
 
-// Un vrai client donne un budget "rond", pas un calcul au centime près : un
-// professionnel arrondit au multiple de 10 € (petit contrat) ou 50 € (gros
-// contrat) ; un particulier arrondit au multiple de 5 ou 10 € (guide § 6).
+// Un budget de marché réaliste n'est jamais un multiple rond (500, 1000, 1050...) :
+// il varie à l'euro près (524 €, 1247 €, 568 €...), comme un devis réel qui
+// dépend de nombreux petits facteurs. On arrondit seulement au centime près
+// pour l'affichage, sans jamais lisser vers un multiple de 5/10/50.
 function arrondirBudgetClient(total, type) {
-  if (type === 'B2B') {
-    const step = total < 400 ? 10 : 50;
-    return Math.round(total / step) * step;
-  }
-  const step = total < 100 ? 5 : 10;
-  return Math.round(total / step) * step;
+  return Math.round(total);
 }
 
 // Calcule le budget nettoyage selon le mode de facturation de la catégorie :
@@ -1429,8 +1425,9 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
     const tarifBracket = profile.tarifM2HT || profile.tarifM2TTC;
     let tarifM2 = tarifDansFourchette(tarifBracket, nbContraintes) * zoneCoef;
     let total = amount * tarifM2 * (0.95 + Math.random() * 0.1);
-    // Filet de sécurité : une intervention ponctuelle ne s'affiche jamais sous 500 € TTC.
-    total = Math.max(total, 500);
+    // Filet de sécurité : une intervention ponctuelle ne s'affiche jamais sous
+    // 500 € TTC — variance continue, jamais un plancher rond.
+    total = Math.max(total, 500 + Math.random() * 300);
     return { total: arrondirBudgetClient(total, type), tarifHoraire: null, heuresMensuelles: null };
   }
   const tarifBracket = profile.tarifHT || profile.tarifTTC;
@@ -1445,8 +1442,9 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
     // puis durée, voir generer()) doit déjà amener le volume horaire au-dessus
     // du minimum dans l'immense majorité des cas. Ce plancher ne fait que
     // garantir qu'aucun budget mensuel ne s'affiche sous 1000 € TTC (pro) ou
-    // 700 € TTC (particulier), jamais en-dessous.
-    const planchierMensuel = type === 'B2B' ? rand(1000, 1050) : 700;
+    // 700 € TTC (particulier), jamais en-dessous — avec une variance continue,
+    // jamais un plancher rond.
+    const planchierMensuel = type === 'B2B' ? 1000 + Math.random() * 400 : 700 + Math.random() * 300;
     total = Math.max(total, planchierMensuel);
     return { total: arrondirBudgetClient(total, type), tarifHoraire, heuresMensuelles: hMensuelles };
   }
@@ -1454,8 +1452,8 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
   let total = dureeH * tarifHoraire * (0.95 + Math.random() * 0.1);
   // Filet de sécurité seulement : l'ajustement de durée fait dans generer()
   // doit déjà amener ce total au-dessus de 500 € TTC dans l'immense majorité
-  // des cas.
-  total = Math.max(total, 500);
+  // des cas — variance continue, jamais un plancher rond.
+  total = Math.max(total, 500 + Math.random() * 300);
   return { total: arrondirBudgetClient(total, type), tarifHoraire, heuresMensuelles: null };
 }
 
