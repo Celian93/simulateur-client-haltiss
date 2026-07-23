@@ -1350,6 +1350,10 @@ function computePrice(sector, type, amount, dist, workers, duration, urgent, wee
   // un budget de marché réaliste n'est jamais un multiple rond (1250, 780...).
   const floorMin = type === 'B2B' ? 1000 : 700;
   base = Math.max(base, floorMin + Math.random() * (type === 'B2B' ? 400 : 300));
+  // Pour un particulier, même un très gros déménagement reste plafonné à
+  // ~1200 € (jamais un budget de professionnel) — variance continue pour ne
+  // pas coller pile sur le plafond.
+  if (type !== 'B2B') base = Math.min(base, 1120 + Math.random() * 80);
   return Math.round(base);
 }
 
