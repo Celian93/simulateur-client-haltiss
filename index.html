@@ -1429,6 +1429,8 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
     const tarifBracket = profile.tarifM2HT || profile.tarifM2TTC;
     let tarifM2 = tarifDansFourchette(tarifBracket, nbContraintes) * zoneCoef;
     let total = amount * tarifM2 * (0.95 + Math.random() * 0.1);
+    // Filet de sécurité : une intervention ponctuelle ne s'affiche jamais sous 500 € TTC.
+    total = Math.max(total, 500);
     return { total: arrondirBudgetClient(total, type), tarifHoraire: null, heuresMensuelles: null };
   }
   const tarifBracket = profile.tarifHT || profile.tarifTTC;
@@ -1450,6 +1452,10 @@ function computeNettoyagePrix({ profile, type, amount, dureeH, passagesSemaine, 
   }
   tarifHoraire *= coefficientPonctuelNettoyage(urgent);
   let total = dureeH * tarifHoraire * (0.95 + Math.random() * 0.1);
+  // Filet de sécurité seulement : l'ajustement de durée fait dans generer()
+  // doit déjà amener ce total au-dessus de 500 € TTC dans l'immense majorité
+  // des cas.
+  total = Math.max(total, 500);
   return { total: arrondirBudgetClient(total, type), tarifHoraire, heuresMensuelles: null };
 }
 
@@ -1832,6 +1838,20 @@ async function generer() {
         if (estimer(duration, passagesSemaineNum) < floorMensuel) {
           const dureeCap = profile.dureeFamily === 'restaurant' ? 3.5 : profile.dureeFamily === 'particulier' ? 6 : 3;
           const dureeCible = floorMensuel / (passagesSemaineNum * 4.33 * tarifBase * coefficientRecurrenceNettoyage(passagesSemaineNum));
+          duration = Math.min(dureeCap, Math.max(duration, Math.round(dureeCible * 4) / 4));
+        }
+      }
+    } else if (profile.pricingMode !== 'm2') {
+      // Même principe pour une intervention ponctuelle : jamais en dessous de
+      // 500 € TTC, atteint en allongeant la durée d'intervention (plafonnée à
+      // une valeur réaliste) plutôt qu'en gonflant le prix artificiellement.
+      const floorPonctuel = 500;
+      const tarifBracket = profile.tarifHT || profile.tarifTTC;
+      if (tarifBracket) {
+        const tarifBase = ((tarifBracket[0] + tarifBracket[1]) / 2) * coefficientZoneNettoyage(deptCode) * coefficientPonctuelNettoyage(nettoyageUrgent);
+        if (duration * tarifBase < floorPonctuel) {
+          const dureeCap = profile.dureeFamily === 'restaurant' ? 6 : 8;
+          const dureeCible = floorPonctuel / tarifBase;
           duration = Math.min(dureeCap, Math.max(duration, Math.round(dureeCible * 4) / 4));
         }
       }
