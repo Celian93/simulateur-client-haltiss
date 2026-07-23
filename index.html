@@ -1345,8 +1345,10 @@ function computePrice(sector, amount, dist, workers, duration, urgent, weekend) 
   if (urgent) base *= p.urgentMult;
   if (weekend) base *= p.weekendMult;
   base *= (0.9 + Math.random() * 0.3); // ±variance réaliste selon le prestataire/l'état du bien
-  base = Math.max(base, p.floor);
-  return Math.round(base / 10) * 10;
+  // Plancher avec variance continue, et arrondi à l'euro seulement : un budget
+  // de marché réaliste n'est jamais un multiple rond (1250, 780...).
+  base = Math.max(base, p.floor + Math.random() * p.floor * 0.3);
+  return Math.round(base);
 }
 
 // ── TARIFICATION NETTOYAGE (guide de référence Haltiss, juillet 2026) ─────────
