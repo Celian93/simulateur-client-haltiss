@@ -1099,6 +1099,7 @@ const SECTORS = {
     key: 'demenagement',
     label: 'Déménagement',
     unit: 'm³',
+    unitLabel: 'mètre cube',
     amountLabel: 'Volume estimé',
     itemsTitle: 'Éléments à déménager',
     roleSingular: 'déménageur',
@@ -1129,6 +1130,7 @@ const SECTORS = {
     key: 'nettoyage',
     label: 'Nettoyage',
     unit: 'm²',
+    unitLabel: 'mètre carré',
     amountLabel: 'Surface estimée',
     itemsTitle: 'Prestations à réaliser',
     roleSingular: 'agent de nettoyage',
@@ -1958,6 +1960,7 @@ function buildFicheData(d) {
     amountLabel: d.sector.amountLabel,
     amount: d.amount,
     unit: d.sector.unit,
+    unitLabel: d.sector.unitLabel,
     itemsTitle: d.sector.itemsTitle,
     itemGroups,
     chaquePassage: d.chaquePassage || [],
@@ -2051,7 +2054,7 @@ function afficher(d) {
           ${d.niveau ? `<li><b>Niveau de prestation :</b> ${d.niveau}${d.niveauNote ? ` — ${d.niveauNote}` : ''}</li>` : ''}
           ${d.singleSite ? '' : `<li><b>Distance entre les deux sites :</b> ${String(d.dist).replace('.', ',')} km</li>`}
           <li><b>Date souhaitée :</b> ${d.delai}</li>
-          <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit}</li>
+          <li><b>${d.sector.amountLabel} :</b> ${d.amount} ${d.sector.unit} (${d.sector.unitLabel})</li>
           ${d.frequency ? `<li><b>Fréquence souhaitée :</b> ${d.frequency} — ${d.joursPassage}</li>` : ''}
           ${d.sector.key === 'nettoyage' && d.duration && !d.pricingModeM2 ? `<li><b>Durée estimée par passage :</b> ${formatHeures(d.duration)}</li>` : ''}
           ${d.heureIntervention ? `<li><b>Horaire d'intervention souhaité :</b> ${d.heureIntervention} (fin de journée)</li>` : ''}

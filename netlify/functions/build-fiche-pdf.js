@@ -89,7 +89,7 @@ async function buildFichePdf(fiche) {
     if (fiche.niveau) line(doc, 'Niveau de prestation', fiche.niveau + (fiche.niveauNote ? ` — ${fiche.niveauNote}` : ''));
     if (!fiche.singleSite) line(doc, 'Distance entre les deux sites', `${String(fiche.dist).replace('.', ',')} km`);
     line(doc, 'Date souhaitée', fiche.delai);
-    line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit}`);
+    line(doc, fiche.amountLabel, `${fiche.amount} ${fiche.unit} (${fiche.unitLabel})`);
     if (fiche.frequency) line(doc, 'Fréquence souhaitée', `${fiche.frequency} — ${fiche.joursPassage}`);
     if (fiche.sectorKey === 'nettoyage' && !fiche.pricingModeM2) line(doc, 'Durée estimée par passage', fiche.duration);
     if (fiche.heureIntervention) line(doc, 'Horaire d\'intervention souhaité', `${fiche.heureIntervention} (fin de journée)`);
