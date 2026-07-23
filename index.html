@@ -702,7 +702,8 @@ const CONTRAINTES_DEMENAGEMENT_B2B = [
   'L\'accès pour la livraison doit être confirmé au préalable avec le responsable des locaux.',
 ];
 
-// Familles de tarification nettoyage B2B (repères HT du marché français,
+// Familles de tarification nettoyage B2B (repères TTC du marché français :
+// bureaux 30-42 €/h, petit contrat 34-43 €/h, restaurant 38-50 €/h TTC,
 // positionnement dans la fourchette et fréquences typiques selon le guide de
 // référence Haltiss) : chaque catégorie hérite d'une famille puis surcharge
 // ses propres surface/effectif/prestations/exclusions.
@@ -786,11 +787,11 @@ const PRESTATIONS_PAR_FAMILLE = {
 };
 
 const FAMILLES_B2B_NETTOYAGE = {
-  petiteAgence:       { tarifHT:[25,32], dureeFamily:'bureau', freqPool:['1 fois par semaine','2 fois par semaine','3 fois par semaine'] },
-  bureau:             { tarifHT:[25,34], dureeFamily:'bureau', freqPool:['2 fois par semaine','3 fois par semaine','4 fois par semaine','5 fois par semaine'] },
-  bureauConfidentiel: { tarifHT:[28,36], dureeFamily:'bureau', freqPool:['2 fois par semaine','3 fois par semaine','4 fois par semaine','5 fois par semaine'] },
-  commerce:           { tarifHT:[24,30], dureeFamily:'bureau', freqPool:['1 fois par semaine','2 fois par semaine','3 fois par semaine'] },
-  restaurant:         { tarifHT:[28,38], dureeFamily:'restaurant', freqPool:['5 fois par semaine','6 fois par semaine'] },
+  petiteAgence:       { tarifTTC:[34,43], dureeFamily:'bureau', freqPool:['1 fois par semaine','2 fois par semaine','3 fois par semaine'] },
+  bureau:             { tarifTTC:[30,42], dureeFamily:'bureau', freqPool:['2 fois par semaine','3 fois par semaine','4 fois par semaine','5 fois par semaine'] },
+  bureauConfidentiel: { tarifTTC:[34,44], dureeFamily:'bureau', freqPool:['2 fois par semaine','3 fois par semaine','4 fois par semaine','5 fois par semaine'] },
+  commerce:           { tarifTTC:[30,40], dureeFamily:'bureau', freqPool:['1 fois par semaine','2 fois par semaine','3 fois par semaine'] },
+  restaurant:         { tarifTTC:[38,50], dureeFamily:'restaurant', freqPool:['5 fois par semaine','6 fois par semaine'] },
 };
 function b2bCat(cat, famille, overrides) {
   const prestations = PRESTATIONS_PAR_FAMILLE[famille];
@@ -867,7 +868,7 @@ const B2B_NETTOYAGE = [
   b2bCat('Petit établissement de restauration', 'restaurant', { amountBase:[45,120],
     extra:['Intervention après service uniquement'],
     exclusions: EXCLUSIONS_RESTAURANT }),
-  { cat:'Local après travaux', recurring:false, niveau:'Standard', pricingMode:'m2', tarifM2HT:[4,10], amountBase:[80,220],
+  { cat:'Local après travaux', recurring:false, niveau:'Standard', pricingMode:'m2', tarifM2TTC:[5,12], amountBase:[80,220],
     chaquePassage: [
       'Évacuation de la poussière fine.',
       'Nettoyage approfondi des sols.',
